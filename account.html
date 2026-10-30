@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Account · bellhive99</title>
+<link rel="stylesheet" href="auth/auth.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap" style="max-width:640px">
+    <div class="bh-page-head"><div><div class="crumb">bellhive99</div><h1>My Account</h1></div></div>
+    <div id="mc"><div class="bh-empty">Loading…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth/config.js"></script>
+  <script src="auth/auth.js" data-root=""></script>
+  <script>
+  (async function () {
+    const { el, toast, fmtWhen } = BH.ui;
+    const mc = document.getElementById('mc');
+    try {
+      const { user } = await BH.init();
+      if (!user) return BH.requireLogin();
+    } catch (e) { mc.replaceChildren(el('div', { class: 'bh-alert' }, e.message)); return; }
+
+    function render() {
+      const p = BH.profile;
+      const name = el('input', { value: p.full_name || '' });
+      const phone = el('input', { value: p.phone || '', placeholder: '(334) 555-0100' });
+      const err = el('div', { class: 'bh-err', style: 'text-align:left' });
+      mc.replaceChildren(
+        el('div', { class: 'bh-card bh-card-pad' },
+          el('div', { style: 'display:flex;align-items:center;gap:14px;margin-bottom:16px' },
+            el('span', { class: 'bh-av', style: 'width:52px;height:52px;font-size:19px' }, BH.initials(BH.displayName())),
+            el('div', null,
+              el('div', { style: 'font:700 24px var(--bh-display)' }, BH.displayName()),
+              el('div', { style: 'color:var(--bh-text3)' }, p.email || BH.user.email))),
+          el('dl', { class: 'bh-kv' },
+            el('dt', null, 'Role'), el('dd', null, el('span', { class: 'bh-badge ' + (p.role === 'admin' ? 'admin' : 'member') }, p.role === 'admin' ? 'Admin' : 'Member')),
+            el('dt', null, 'Status'), el('dd', null, el('span', { class: 'bh-badge on' }, 'Active')),
+            el('dt', null, 'Last log in'), el('dd', null, fmtWhen(BH.user.last_sign_in_at || p.last_sign_in_at)),
+            el('dt', null, 'Member since'), el('dd', null, fmtWhen(p.created_at)))),
+        el('form', { class: 'bh-card bh-card-pad', onsubmit: async (e) => {
+          e.preventDefault(); err.textContent = '';
+          if (!name.value.trim()) { err.textContent = 'Name is required.'; return; }
+          try { await BH.updateMyProfile({ full_name: name.value.trim(), phone: phone.value.trim() || null }); toast('Saved', 'ok'); render(); }
+          catch (x) { err.textContent = x.message; }
+        } },
+          el('h2', null, 'Profile'),
+          el('div', { class: 'bh-grid2' },
+            el('label', { class: 'bh-field' }, el('span', null, 'Full Name'), name),
+            el('label', { class: 'bh-field' }, el('span', null, 'Phone'), phone)),
+          el('label', { class: 'bh-field' }, el('span', null, 'Email (sign-in)'), el('input', { value: p.email || BH.user.email, readOnly: true })),
+          err,
+          el('button', { class: 'bh-btn primary', type: 'submit' }, 'Save Profile')),
+        el('div', { class: 'bh-card bh-card-pad' },
+          el('h2', null, 'Security'),
+          el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+            el('button', { class: 'bh-btn', type: 'button', onclick: () => BH.ui.passwordModal('change') }, 'Change Password'),
+            el('button', { class: 'bh-btn danger', type: 'button', onclick: async () => { await BH.signOut(); (window.top || window).location.href = 'index.html'; } }, 'Sign Out'))));
+    }
+    render();
+  })();
+  </script>
+</body>
+</html>

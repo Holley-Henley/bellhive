@@ -1,21 +1,137 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>New Page 3</title>
-<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
-<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Bell Family Homepage · bellhive99</title>
+<link rel="stylesheet" href="auth/auth.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  /* the original FrontPage frameset (contents 199px | main), rebuilt as iframes under the site bar */
+  .bh-shell { display: flex; flex-direction: column; height: 100%; }
+  .bh-frames { flex: 1; display: flex; min-height: 0; background: url(image5.jpg); }
+  .bh-frames iframe { border: 0; height: 100%; display: block; }
+  .bh-frames iframe[name=contents] { width: 199px; flex: none; }
+  .bh-frames iframe[name=main] { flex: 1; min-width: 0; }
+</style>
+<!-- was: <frameset cols="199,*"><frame name="contents" src="INDEXA.HTM"><frame name="main" src="INDEXB.HTM"></frameset> -->
 </head>
+<body>
 
-<frameset framespacing="0" border="0" cols="199,*" frameborder="0">
-  <frame name="contents" target="main" src="INDEXA.HTM" scrolling="auto">
-  <frame name="main" src="INDEXB.HTM">
-  <noframes>
-  <body topmargin="0" leftmargin="0">
+<div class="bh-loading" id="bh-loading">
+  <div class="bh-wordmark">bell<b>hive</b>99</div>
+  <div class="bh-spinner"></div>
+  <div class="bh-loading-msg" id="bh-loading-msg">Connecting…</div>
+</div>
 
-  <p>This page uses frames, but your browser doesn't support them.</p>
+<div class="bh-login bh-gone" id="bh-login">
+  <form class="bh-login-box" id="bh-login-form" autocomplete="on">
+    <div class="bh-logo">
+      <div class="bh-wordmark">bell<b>hive</b>99</div>
+      <div class="sub">The Bell Family Homepage</div>
+      <div class="bar"></div>
+    </div>
+    <label class="bh-field"><span>Email Address</span><input type="email" id="bh-email" placeholder="your@email.com" autocomplete="username" required></label>
+    <label class="bh-field"><span>Password</span><input type="password" id="bh-pw" placeholder="Enter your password" autocomplete="current-password" required></label>
+    <div class="bh-err" id="bh-login-err"></div>
+    <button class="bh-login-btn" id="bh-login-btn" type="submit">Sign In</button>
+    <div class="bh-forgot"><a id="bh-forgot">Forgot your password?</a></div>
+    <div class="bh-login-foot">Private site · accounts are added by an admin</div>
+  </form>
+</div>
 
-  </body>
-  </noframes>
-</frameset>
+<div class="bh-shell bh-gone" id="bh-shell">
+  <div class="bh-bar">
+    <a class="bh-wordmark" href="index.html" title="Home">bell<b>hive</b>99</a>
+    <span class="spacer"></span>
+    <span class="bh-av" id="bh-av">—</span>
+    <span class="bh-who-name" id="bh-name">—</span>
+    <span class="bh-rtag" id="bh-role">—</span>
+    <a class="bh-bar-btn" href="account.html" target="main">My Account</a>
+    <button class="bh-bar-btn" type="button" id="bh-chpw">Change Password</button>
+    <button class="bh-bar-btn" type="button" id="bh-out">Sign Out</button>
+  </div>
+  <div class="bh-frames">
+    <iframe name="contents" title="Site menu"></iframe>
+    <iframe name="main" title="Main page"></iframe>
+  </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth/config.js"></script>
+<script src="auth/auth.js" data-root=""></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const next = params.get('next');
+  let recovering = /type=recovery/.test(location.hash);
+
+  function show(id) { ['bh-loading', 'bh-login', 'bh-shell'].forEach((x) => $(x).classList.toggle('bh-gone', x !== id)); }
+
+  async function enter() {
+    if (BH.profile.must_change_password) await BH.ui.passwordModal('forced');
+    /* came here from a module (e.g. workout) - go back to it */
+    if (next) {
+      let dest = null;
+      try { dest = new URL(next, location.href); } catch (e) { /* ignore bad value */ }
+      if (dest && dest.origin === location.origin && /^(https?|file):$/.test(dest.protocol)) { location.replace(dest.href); return; }
+    }
+    $('bh-av').textContent = BH.initials(BH.displayName());
+    $('bh-name').textContent = BH.displayName();
+    $('bh-role').textContent = BH.isAdmin() ? 'Admin' : 'Member';
+    const frames = document.querySelectorAll('.bh-frames iframe');
+    if (!frames[0].src) { frames[0].src = 'INDEXA.HTM'; frames[1].src = 'INDEXB.HTM'; }
+    show('bh-shell');
+  }
+
+  function showLogin(msg) {
+    show('bh-login');
+    $('bh-login-err').textContent = msg || '';
+    setTimeout(() => $('bh-email').focus(), 30);
+  }
+
+  $('bh-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('bh-login-btn');
+    $('bh-login-err').textContent = '';
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try { await BH.signIn($('bh-email').value, $('bh-pw').value); $('bh-pw').value = ''; await enter(); }
+    catch (err) { $('bh-login-err').textContent = err.message; }
+    finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+  });
+
+  $('bh-forgot').addEventListener('click', async () => {
+    const email = $('bh-email').value.trim();
+    if (!email) { $('bh-login-err').textContent = 'Type your email above, then click "Forgot your password?"'; return; }
+    try { await BH.sendResetEmail(email); $('bh-login-err').textContent = ''; BH.ui.toast('Check ' + email + ' for a reset link', 'ok'); }
+    catch (err) { $('bh-login-err').textContent = err.message; }
+  });
+
+  $('bh-chpw').addEventListener('click', () => BH.ui.passwordModal('change'));
+  $('bh-out').addEventListener('click', async () => {
+    await BH.signOut();
+    document.querySelectorAll('.bh-frames iframe').forEach((f) => f.removeAttribute('src'));
+    history.replaceState(null, '', 'index.html');
+    showLogin();
+  });
+
+  async function start() {
+    try {
+      const { user } = await BH.init();
+      if (BH.sb) BH.sb.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') recovering = true; });
+      if (user && recovering) {
+        recovering = false;
+        history.replaceState(null, '', location.pathname);
+        await BH.ui.passwordModal('recovery');
+      }
+      if (user) await enter(); else showLogin();
+    } catch (err) {
+      showLogin(err.message);
+    }
+  }
+  start();
+})();
+</script>
+</body>
 </html>
