@@ -5,7 +5,8 @@
 //   set_active    { user_id, active }                    -> deactivate (blocks sign-in) / reactivate
 //
 // Deploy: Supabase dashboard -> Edge Functions -> Deploy a new function -> name it "admin-users",
-// paste this file, deploy. SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are provided automatically.
+// paste this file, turn OFF "Verify JWT" (this function checks the caller itself), deploy.
+// SUPABASE_URL and SUPABASE_SECRET_KEYS are provided automatically.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const cors = {
@@ -21,10 +22,15 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
 
   const url = Deno.env.get('SUPABASE_URL')!;
-  const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  let secret = '';
+  try { secret = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}')['default'] || ''; } catch { /* fall back */ }
+  if (!secret) secret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (!secret) return json({ error: 'Server key is not configured.' }, 500);
+  const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
 
   // Who is calling, and are they an active admin?
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return json({ error: 'Not signed in.' }, 401);
   const { data: who, error: whoErr } = await admin.auth.getUser(token);
   if (whoErr || !who?.user) return json({ error: 'Not signed in.' }, 401);
   const { data: me } = await admin.from('profiles').select('role, active').eq('id', who.user.id).single();

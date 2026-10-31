@@ -110,6 +110,7 @@
           if (pw.value !== pw2.value) { err.textContent = 'Passwords do not match.'; return; }
           try {
             await BH.adminCall('create', { full_name: name.value.trim(), email: email.value.trim(), phone: phone.value.trim() || null, role: role.value, password: pw.value });
+            BH.audit('user_create', 'created user ' + name.value.trim() + ' (' + ROLE_LABEL[role.value] + ')', email.value.trim(), 'admin');
             close(); toast('User created - give ' + name.value.trim() + " the password; they'll change it at first sign-in.", 'ok');
             await load();
           } catch (e) { err.textContent = e.message; }
@@ -139,6 +140,7 @@
         const b = e.currentTarget; b.disabled = true; b.textContent = 'Saving…';
         try {
           await BH.adminCall('set_password', { user_id: u.id, password: npw.value });
+          BH.audit('user_password', 'set a new password for ' + (u.full_name || u.email), u.email, 'admin');
           npw.value = npw2.value = ''; inline.style.display = 'none';
           toast('Password updated for ' + (u.full_name || u.email) + " - they'll change it at next sign-in.", 'ok');
         } catch (x) { pwErr.textContent = x.message; }
@@ -149,7 +151,7 @@
       el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
         el('button', { class: 'bh-btn sm', type: 'button', onclick: async () => {
           if (!u.email) { toast('No email on file for this user', 'error'); return; }
-          try { await BH.sendResetEmail(u.email); toast('Password reset email sent to ' + u.email, 'ok'); }
+          try { await BH.sendResetEmail(u.email); toast('Password reset email sent to ' + u.email, 'ok'); BH.audit('user_password', 'sent a password reset email to ' + (u.full_name || u.email), u.email, 'admin'); }
           catch (x) { toast('Failed to send: ' + x.message, 'error'); }
         } }, 'Send Reset Email'),
         el('button', { class: 'bh-btn sm', type: 'button', onclick: () => { inline.style.display = inline.style.display === 'none' ? '' : 'none'; } }, 'Set New Password Directly')),
@@ -175,6 +177,11 @@
           }
           const { error } = await BH.sb.from('profiles').update({ full_name: name.value.trim(), phone: phone.value.trim() || null, role: role.value }).eq('id', u.id);
           if (error) { err.textContent = error.message; return; }
+          const changes = [];
+          if ((u.full_name || '') !== name.value.trim()) changes.push('name');
+          if ((u.phone || '') !== (phone.value.trim() || '')) changes.push('phone');
+          if (u.role !== role.value) changes.push('role ' + ROLE_LABEL[u.role] + ' → ' + ROLE_LABEL[role.value]);
+          BH.audit('user_update', 'updated user ' + name.value.trim() + (changes.length ? ' (' + changes.join(', ') + ')' : ' (no changes)'), u.email, 'admin');
           close(); toast('User updated', 'ok');
           if (isMe) await BH.reloadProfile();
           await load();
@@ -195,6 +202,7 @@
         { label: turningOff ? 'Deactivate' : 'Activate', primary: true, onClick: busy('Saving…', async (close) => {
           try {
             await BH.adminCall('set_active', { user_id: u.id, active: !turningOff });
+            BH.audit('user_status', (turningOff ? 'deactivated ' : 'activated ') + (u.full_name || u.email), u.email, 'admin');
             close(); toast((u.full_name || u.email) + (turningOff ? ' deactivated' : ' activated'), 'ok');
             await load();
           } catch (e) { close(); toast(e.message, 'error'); }

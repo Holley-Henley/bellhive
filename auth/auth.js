@@ -50,15 +50,26 @@
   BH.displayName = () => (BH.profile && BH.profile.full_name) || (BH.user && BH.user.email) || '';
   BH.initials = (name) => String(name || '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0].toUpperCase()).join('') || '?';
 
+  /* Audit log (ADMIN > Audit Log). Never blocks or breaks the action being logged.
+   * The database fills in who/when; callers say what happened. */
+  BH.audit = function (type, detail, ref, module) {
+    if (!BH.sb || !BH.user) return Promise.resolve();
+    const row = { action_type: type, action_detail: detail || null, item_reference: ref || null, module: module || 'site' };
+    const p = Promise.resolve(BH.sb.from('audit_log').insert(row)).then((r) => { if (r && r.error) console.warn('audit:', r.error.message); }, (e) => console.warn('audit:', e));
+    return Promise.race([p, new Promise((res) => setTimeout(res, 1500))]);
+  };
+
   BH.signIn = async function (email, password) {
     const { data, error } = await BH.sb.auth.signInWithPassword({ email: email.trim(), password });
     if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Wrong email or password.' : error.message);
     BH.user = data.user;
     await loadProfile();
     initPromise = Promise.resolve({ user: BH.user, profile: BH.profile });
+    BH.audit('login', 'signed in');
     return BH.profile;
   };
   BH.signOut = async function () {
+    if (BH.user) await BH.audit('logout', 'signed out');
     try { await BH.sb.auth.signOut(); } catch (e) { /* already gone */ }
     BH.user = null; BH.profile = null; initPromise = null;
   };
@@ -70,39 +81,48 @@
     if (!pw || pw.length < 8) throw new Error('Password must be at least 8 characters.');
     const { error } = await BH.sb.auth.updateUser({ password: pw });
     if (error) throw new Error(error.message);
-    if (BH.profile && BH.profile.must_change_password) {
+    const forced = !!(BH.profile && BH.profile.must_change_password);
+    if (forced) {
       await BH.sb.from('profiles').update({ must_change_password: false }).eq('id', BH.user.id);
       BH.profile.must_change_password = false;
     }
+    BH.audit('password', forced ? 'set own password (first sign-in / reset)' : 'changed own password');
   };
   BH.updateMyProfile = async function (fields) {
     const { data, error } = await BH.sb.from('profiles').update(fields).eq('id', BH.user.id).select().single();
     if (error) throw new Error(error.message);
     BH.profile = data;
+    BH.audit('profile', 'updated own profile', Object.keys(fields).join(', '));
     return data;
   };
 
-  /* Admin actions that need the service key run in the admin-users edge function. */
-  BH.adminCall = async function (action, payload) {
+  /* Call one of the site's Supabase edge functions as the signed-in user. */
+  BH.callFunction = async function (name, payload) {
     const { data } = await BH.sb.auth.getSession();
     const token = data.session && data.session.access_token;
     if (!token) throw new Error('Your session expired - sign in again.');
     let resp;
     try {
-      resp = await fetch(C.supabaseUrl + '/functions/v1/admin-users', {
+      resp = await fetch(C.supabaseUrl + '/functions/v1/' + name, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: C.supabaseKey },
-        body: JSON.stringify(Object.assign({ action }, payload)),
+        body: JSON.stringify(payload || {}),
       });
     } catch (e) {
-      throw new Error('Could not reach the admin-users function. Has it been deployed? (' + e.message + ')');
+      throw new Error('Could not reach the ' + name + ' function. Has it been deployed? (' + e.message + ')');
     }
     let out = {};
     try { out = await resp.json(); } catch (e) { /* non-JSON */ }
-    if (resp.status === 404) throw new Error('The admin-users edge function is not deployed yet.');
-    if (!resp.ok || out.error) throw new Error(out.error || ('Request failed (' + resp.status + ')'));
+    if (resp.status === 404 && !out.error) throw new Error('The ' + name + ' edge function is not deployed yet.');
+    if (!resp.ok || out.error) {
+      const err = new Error(out.error || ('Request failed (' + resp.status + ')'));
+      Object.assign(err, out, { status: resp.status });
+      throw err;
+    }
     return out;
   };
+  /* Admin actions that need the service key run in the admin-users edge function. */
+  BH.adminCall = (action, payload) => BH.callFunction('admin-users', Object.assign({ action }, payload));
 
   /* Not signed in? Go to the site login, then come back here. */
   BH.requireLogin = function () {

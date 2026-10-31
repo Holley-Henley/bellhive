@@ -5,6 +5,7 @@ WL.views = WL.views || {};
 
 WL.views.setup = (function () {
   const u = WL.u, h = u.h, C = WL.catalog;
+  const audit = (type, detail, ref) => { if (window.BH && BH.audit) BH.audit(type, detail, ref, 'workout'); };
 
   async function render(container, args, app) {
     const store = app.store;
@@ -45,25 +46,35 @@ WL.views.setup = (function () {
     /* ---- data ---- */
     const imported = await store.getMeta('imported');
     const status = h('p.card-sub');
+    const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
     const importBtn = h('button.btn' + (imported ? '.ghost' : '.primary'), {
-      onclick: async () => {
+      onclick: () => {
         if (imported && !confirmInline(importBtn, 'Import again? This adds a second copy. Tap again to confirm.')) return;
-        importBtn.disabled = true; importBtn.textContent = 'Importing…';
-        try {
-          const r = await WL.importHistory(store, (n, total) => { importBtn.textContent = 'Importing ' + n + ' / ' + total; });
-          await app.reload();
-          u.toast('Imported ' + u.fmtNum(r.sets) + ' sets and ' + r.daily + ' daily entries');
-          const lastDate = WL.HISTORY.sets[WL.HISTORY.sets.length - 1][1];
-          app.go('week/' + lastDate);
-        } catch (e) { importBtn.disabled = false; importBtn.textContent = 'Import spreadsheet history'; status.textContent = e.message; }
+        fileInput.value = ''; fileInput.click();
       },
-    }, imported ? 'Import again' : 'Import spreadsheet history');
+    }, imported ? 'Import again' : 'Import spreadsheet history…');
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      status.textContent = '';
+      importBtn.disabled = true; importBtn.textContent = 'Reading file…';
+      try {
+        const H = WL.parseHistoryFile(await file.text());
+        importBtn.textContent = 'Importing…';
+        const r = await WL.importHistory(store, (n, total) => { importBtn.textContent = 'Importing ' + n + ' / ' + total; }, H);
+        audit('workout_import', 'imported spreadsheet history (' + r.sets + ' sets, ' + r.daily + ' daily entries)', file.name);
+        await app.reload();
+        u.toast('Imported ' + u.fmtNum(r.sets) + ' sets and ' + r.daily + ' daily entries');
+        const lastDate = H.sets[H.sets.length - 1][1];
+        app.go('week/' + lastDate);
+      } catch (e) { importBtn.disabled = false; importBtn.textContent = imported ? 'Import again' : 'Import spreadsheet history…'; status.textContent = e.message; }
+    });
     container.appendChild(h('section.card',
       h('div.card-head', h('h2', 'Data')),
       h('p.card-sub', imported
-        ? 'Spreadsheet history imported ' + u.fmtDate(imported.at.slice(0, 10), { year: true }) + ' (' + u.fmtNum(imported.sets) + ' sets).'
-        : 'Brings in the old WorkOutSchedule sheet: bench, push-ups, curls, plank, bike and hike from Feb 2024 to Apr 2026, plus body weight and beers.'),
-      h('div.btn-row', importBtn,
+        ? 'Spreadsheet history imported ' + u.fmtDate(u.iso(new Date(imported.at)), { year: true }) + ' (' + u.fmtNum(imported.sets) + ' sets).'
+        : 'Brings in the old WorkOutSchedule sheet (Feb 2024 – Apr 2026: bench, push-ups, curls, plank, bike, hike, body weight and beers). Choose the file workout-history-2024-2026.json from your computer.'),
+      h('div.btn-row', importBtn, fileInput,
         h('button.btn.ghost', {
           onclick: async () => {
             const data = await store.exportAll();
@@ -75,6 +86,7 @@ WL.views.setup = (function () {
         h('button.btn.ghost.danger', {
           onclick: async (e) => {
             if (!confirmInline(e.currentTarget, 'Erase all of ' + app.user.name + "'s data? Tap again to confirm.")) return;
+            await audit('workout_erase', 'erased all workout data');
             await store.wipe(); location.reload();
           },
         }, 'Erase my data')),
@@ -159,6 +171,7 @@ WL.views.setup = (function () {
         ex.target = t;
         if (isNew) ex.sort = app.exercises.length;
         await app.store.saveExercise(ex);
+        audit(isNew ? 'exercise_create' : 'exercise_update', (isNew ? 'added exercise ' : 'edited exercise ') + ex.name, C.targetLabel(ex));
         await app.reload();
         u.toast(isNew ? ex.name + ' added' : 'Saved');
         app.go('setup');
@@ -175,13 +188,13 @@ WL.views.setup = (function () {
         h('button.btn.primary', { type: 'submit' }, isNew ? 'Add exercise' : 'Save'),
         !isNew ? h('button.btn.ghost', {
           type: 'button',
-          onclick: async () => { ex.archived = !ex.archived; await app.store.saveExercise(ex); await app.reload(); app.go('setup'); },
+          onclick: async () => { ex.archived = !ex.archived; await app.store.saveExercise(ex); audit('exercise_update', (ex.archived ? 'hid exercise ' : 'showed exercise ') + ex.name); await app.reload(); app.go('setup'); },
         }, ex.archived ? 'Show again' : 'Hide (keep history)') : null,
         !isNew ? h('button.btn.ghost.danger', {
           type: 'button',
           onclick: async (e) => {
             if (!confirmInline(e.currentTarget, 'Delete ' + ex.name + ' and every set logged for it?')) return;
-            await app.store.deleteExercise(ex.id); await app.reload(); app.go('setup');
+            await app.store.deleteExercise(ex.id); audit('exercise_delete', 'deleted exercise ' + ex.name + ' and its sets'); await app.reload(); app.go('setup');
           },
         }, 'Delete') : null));
     drawCustom(); drawTargets();
@@ -201,7 +214,7 @@ WL.views.setup = (function () {
         m.name = name.value.trim(); if (!m.name) return;
         m.unit = unit.value.trim(); m.agg = agg.value; m.step = u.num(step.value) || 1;
         if (isNew) m.sort = app.metrics.length;
-        await app.store.saveMetric(m); await app.reload(); app.go('setup');
+        await app.store.saveMetric(m); audit(isNew ? 'tracker_create' : 'tracker_update', (isNew ? 'added daily tracker ' : 'edited daily tracker ') + m.name); await app.reload(); app.go('setup');
       },
     },
       h('div.card-head', h('h2', isNew ? 'New daily tracker' : 'Edit ' + m.name), h('a.btn.ghost.small', { href: '#setup' }, 'Back')),
@@ -214,7 +227,7 @@ WL.views.setup = (function () {
         !isNew ? h('button.btn.ghost', { type: 'button', onclick: async () => { m.archived = !m.archived; await app.store.saveMetric(m); await app.reload(); app.go('setup'); } }, m.archived ? 'Show again' : 'Hide') : null,
         !isNew ? h('button.btn.ghost.danger', {
           type: 'button',
-          onclick: async (e) => { if (!confirmInline(e.currentTarget, 'Delete ' + m.name + ' and its entries?')) return; await app.store.deleteMetric(m.id); await app.reload(); app.go('setup'); },
+          onclick: async (e) => { if (!confirmInline(e.currentTarget, 'Delete ' + m.name + ' and its entries?')) return; await app.store.deleteMetric(m.id); audit('tracker_delete', 'deleted daily tracker ' + m.name); await app.reload(); app.go('setup'); },
         }, 'Delete') : null));
     return form;
   }

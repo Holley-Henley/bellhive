@@ -22,10 +22,9 @@ Sign in on the bellhive99 home page. Each account keeps its own log.
 | `js/auth.js` | Gets the signed-in user from the site login (or a profile picker in local mode) |
 | `js/store/local.js` | Browser-storage backend |
 | `js/store/supabase.js` | Supabase backend (same interface) |
-| `js/store/index.js` | Picks the backend, seeds starter exercises, runs the spreadsheet import |
+| `js/store/index.js` | Picks the backend, seeds starter exercises, reads and imports the history file |
 | `js/chart.js` | SVG bar/line charts with hover tooltips and table view |
 | `js/views/*.js` | One file per screen: log, week, progress, setup |
-| `data/history.js` | The old WorkOutSchedule sheet, converted (1,876 sets, Feb 2024 – Apr 2026) |
 | `sql/schema.sql` | Supabase tables and row-level security |
 
 ## Sign-in and Supabase
@@ -34,3 +33,7 @@ Supabase settings are in `../auth/config.js`. If nobody is signed in, the page s
 Set `backend: 'local'` in `js/config.js` for an offline demo with no sign-in.
 
 Database setup: run `../supabase/site-schema.sql`, then `sql/schema.sql`, in the Supabase SQL editor.
+
+## Spreadsheet history
+The old WorkOutSchedule sheet was converted to `workout-history-2024-2026.json` (1,876 sets, Feb 2024 – Apr 2026).
+It's kept on your computer, **not** on the website, so it can't be downloaded publicly. Import it from Setup → Import spreadsheet history.

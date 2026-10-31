@@ -15,6 +15,7 @@ WL.auth = (function () {
       await BH.init();
       if (!BH.user || (BH.profile && BH.profile.must_change_password)) return BH.requireLogin();
       user = { id: BH.user.id, email: BH.user.email, name: BH.displayName() };
+      if (BH.track) BH.track('workout');
       return user;
     }
     const id = u.ls.get('wl:currentProfile', null);
