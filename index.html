@@ -28,7 +28,6 @@
   <form class="bh-login-box" id="bh-login-form" autocomplete="on">
     <div class="bh-logo">
       <div class="bh-wordmark">bell<b>hive</b>99</div>
-      <div class="sub">The Bell Family Homepage</div>
       <div class="bar"></div>
     </div>
     <label class="bh-field"><span>Email Address</span><input type="email" id="bh-email" placeholder="your@email.com" autocomplete="username" required></label>
@@ -60,6 +59,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth/config.js"></script>
 <script src="auth/auth.js" data-root=""></script>
+<script src="auth/track.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -83,10 +83,13 @@
     const frames = document.querySelectorAll('.bh-frames iframe');
     if (!frames[0].src) { frames[0].src = 'INDEXA.HTM'; frames[1].src = 'INDEXB.HTM'; }
     show('bh-shell');
+    if (BH.track) BH.track('home');
   }
 
+  let loginTracked = false;
   function showLogin(msg) {
     show('bh-login');
+    if (!loginTracked && BH.track) { loginTracked = true; BH.track('login'); }
     $('bh-login-err').textContent = msg || '';
     setTimeout(() => $('bh-email').focus(), 30);
   }
@@ -107,6 +110,16 @@
     try { await BH.sendResetEmail(email); $('bh-login-err').textContent = ''; BH.ui.toast('Check ' + email + ' for a reset link', 'ok'); }
     catch (err) { $('bh-login-err').textContent = err.message; }
   });
+
+  /* Tell the menu frame who is signed in (postMessage works even from file://). */
+  function roleFor() { return BH.profile ? (BH.isAdmin() ? 'admin' : 'member') : ''; }
+  window.addEventListener('message', (e) => {
+    const fr = [...document.querySelectorAll('.bh-frames iframe')].find((f) => f.contentWindow === e.source);
+    if (fr && e.data && e.data.bhAsk === 'role') e.source.postMessage({ bhRole: roleFor() }, '*');
+  });
+  document.querySelectorAll('.bh-frames iframe').forEach((f) => f.addEventListener('load', () => {
+    try { f.contentWindow.postMessage({ bhRole: roleFor() }, '*'); } catch (err) { /* frame gone */ }
+  }));
 
   $('bh-chpw').addEventListener('click', () => BH.ui.passwordModal('change'));
   $('bh-out').addEventListener('click', async () => {

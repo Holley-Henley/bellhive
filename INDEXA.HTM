@@ -18,7 +18,7 @@
     <area href="index.html" shape="rect" coords="0, 4, 187, 173" target="_top"></map><img border="0" src="directions.gif" usemap="#FPMap0" width="175" height="174"></font></p>
     <p align="center" style="margin-top: -5; margin-bottom: -5"><b><a href="workout/index.html" target="_top"><font face="Tahoma" size="3">Workout</font></a></b></p>
     <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><b><a href="pict.htm"><font face="Tahoma" size="3">Pictures</font></a></b></p>
+    <p align="center" style="margin-top: -5; margin-bottom: -5"><b><a href="pictures/index.html"><font face="Tahoma" size="3">Pictures</font></a></b></p>
     <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
     <p align="center" style="margin-top: -5; margin-bottom: -5"><a href="http://www.geocities.com/slappyjoerocko"><span style="mso-bidi-font-size: 12.0pt"><b><font face="Tahoma" size="3">Graham
     Genealogy</font></b></span></a></p>
@@ -109,9 +109,11 @@
     <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.cellar-homebrew.com/forum/beer/rec_calc.html"><font face="Tahoma" size="1">Brewing
     Calculator</font></a></span></p>
     <div id="bh-admin-links" style="display: none">
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">ADMIN</font></b></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="admin/users.html"><font face="Tahoma" size="1">Users</font></a></span></p>
+    <p align="center" style="line-height: 12px; margin: 0">&nbsp;</p>
+    <p align="center" style="line-height: 12px; margin: 0"><b><font size="1" face="Century Gothic">ADMIN</font></b></p>
+    <p align="center" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/users.html"><font face="Tahoma" size="1">Users</font></a></span></p>
+    <p align="center" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/audit.html"><font face="Tahoma" size="1">Audit Log</font></a></span></p>
+    <p align="center" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/visitors.html"><font face="Tahoma" size="1">Visitors</font></a></span></p>
     </div>
     <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
     <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
@@ -124,8 +126,18 @@
 
 
 <script>
-/* ADMIN section only shows for admins signed in through the site login (index.html) */
-try { var bhp = window.top.BH && window.top.BH.profile; if (bhp && bhp.role === "admin") document.getElementById("bh-admin-links").style.display = ""; } catch (e) {}
+/* ADMIN section only shows for admins signed in through the site login (index.html).
+   The home page tells this menu the role by postMessage, which also works when the
+   site is opened straight from disk (file://), where frames cannot read each other. */
+(function () {
+  var box = document.getElementById("bh-admin-links");
+  function show(role) { if (box && role === "admin") box.style.display = ""; }
+  try { var p = window.top.BH && window.top.BH.profile; if (p) show(p.role); } catch (e) {}
+  window.addEventListener("message", function (e) {
+    if (e.source === window.parent && e.data && e.data.bhRole) show(e.data.bhRole);
+  });
+  try { window.parent.postMessage({ bhAsk: "role" }, "*"); } catch (e) {}
+})();
 </script>
 </body>
 
