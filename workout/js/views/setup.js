@@ -5,6 +5,8 @@ WL.views = WL.views || {};
 
 WL.views.setup = (function () {
   const u = WL.u, h = u.h, C = WL.catalog;
+  // Adds/edits/deletes are logged by the database itself; only import/erase summaries are sent from here.
+  const audit = (type, detail, ref) => { if (window.BH && BH.audit) BH.audit(type, detail, ref, 'workout'); };
 
   async function render(container, args, app) {
     const store = app.store;
@@ -45,25 +47,35 @@ WL.views.setup = (function () {
     /* ---- data ---- */
     const imported = await store.getMeta('imported');
     const status = h('p.card-sub');
+    const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
     const importBtn = h('button.btn' + (imported ? '.ghost' : '.primary'), {
-      onclick: async () => {
+      onclick: () => {
         if (imported && !confirmInline(importBtn, 'Import again? This adds a second copy. Tap again to confirm.')) return;
-        importBtn.disabled = true; importBtn.textContent = 'Importing…';
-        try {
-          const r = await WL.importHistory(store, (n, total) => { importBtn.textContent = 'Importing ' + n + ' / ' + total; });
-          await app.reload();
-          u.toast('Imported ' + u.fmtNum(r.sets) + ' sets and ' + r.daily + ' daily entries');
-          const lastDate = WL.HISTORY.sets[WL.HISTORY.sets.length - 1][1];
-          app.go('week/' + lastDate);
-        } catch (e) { importBtn.disabled = false; importBtn.textContent = 'Import spreadsheet history'; status.textContent = e.message; }
+        fileInput.value = ''; fileInput.click();
       },
-    }, imported ? 'Import again' : 'Import spreadsheet history');
+    }, imported ? 'Import again' : 'Import spreadsheet history…');
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      status.textContent = '';
+      importBtn.disabled = true; importBtn.textContent = 'Reading file…';
+      try {
+        const H = WL.parseHistoryFile(await file.text());
+        importBtn.textContent = 'Importing…';
+        const r = await WL.importHistory(store, (n, total) => { importBtn.textContent = 'Importing ' + n + ' / ' + total; }, H);
+        audit('workout_import', 'imported spreadsheet history (' + r.sets + ' sets, ' + r.daily + ' daily entries)', file.name);
+        await app.reload();
+        u.toast('Imported ' + u.fmtNum(r.sets) + ' sets and ' + r.daily + ' daily entries');
+        const lastDate = H.sets[H.sets.length - 1][1];
+        app.go('week/' + lastDate);
+      } catch (e) { importBtn.disabled = false; importBtn.textContent = imported ? 'Import again' : 'Import spreadsheet history…'; status.textContent = e.message; }
+    });
     container.appendChild(h('section.card',
       h('div.card-head', h('h2', 'Data')),
       h('p.card-sub', imported
-        ? 'Spreadsheet history imported ' + u.fmtDate(imported.at.slice(0, 10), { year: true }) + ' (' + u.fmtNum(imported.sets) + ' sets).'
-        : 'Brings in the old WorkOutSchedule sheet: bench, push-ups, curls, plank, bike and hike from Feb 2024 to Apr 2026, plus body weight and beers.'),
-      h('div.btn-row', importBtn,
+        ? 'Spreadsheet history imported ' + u.fmtDate(u.iso(new Date(imported.at)), { year: true }) + ' (' + u.fmtNum(imported.sets) + ' sets).'
+        : 'Brings in the old WorkOutSchedule sheet (Feb 2024 – Apr 2026: bench, push-ups, curls, plank, bike, hike, body weight and beers). Choose the file workout-history-2024-2026.json from your computer.'),
+      h('div.btn-row', importBtn, fileInput,
         h('button.btn.ghost', {
           onclick: async () => {
             const data = await store.exportAll();
@@ -75,6 +87,7 @@ WL.views.setup = (function () {
         h('button.btn.ghost.danger', {
           onclick: async (e) => {
             if (!confirmInline(e.currentTarget, 'Erase all of ' + app.user.name + "'s data? Tap again to confirm.")) return;
+            await audit('workout_erase', 'erased all workout data');
             await store.wipe(); location.reload();
           },
         }, 'Erase my data')),

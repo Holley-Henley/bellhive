@@ -1,0 +1,83 @@
+/* bellhive99.com - Guest Book (uses auth/auth.css for the shared look) */
+.gb-wrap { max-width: 780px; }
+.gb-topbar { position: sticky; top: 0; z-index: 20; }
+.gb-head-note { font-size: 12px; color: var(--bh-text3); }
+
+/* ---------- sign box (members) ---------- */
+.gb-sign { display: flex; flex-direction: column; gap: 10px;
+  background: radial-gradient(520px 160px at 100% 0, rgba(242,177,52,.10), transparent 70%), var(--bh-surface); }
+.gb-sign-head { display: flex; align-items: center; gap: 10px; }
+.gb-sign-head .bh-av { width: 34px; height: 34px; font-size: 12px; }
+.gb-sign-t { font: 700 20px/1.1 var(--bh-display); letter-spacing: .3px; }
+.gb-sign-s { font-size: 12px; color: var(--bh-text3); }
+.gb-sign textarea, .gb-guest-box textarea { width: 100%; box-sizing: border-box; font: 14px/1.5 var(--bh-font); padding: 9px 11px; border: 1px solid var(--bh-border2);
+  border-radius: var(--bh-r); resize: vertical; outline: none; color: var(--bh-text); background: #fff; min-height: 70px; }
+.gb-sign textarea:focus, .gb-guest-box textarea:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.gb-sign-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.gb-sign-foot input { flex: 1; min-width: 180px; font: 13px var(--bh-font); padding: 7px 10px; border: 1px solid var(--bh-border2); border-radius: var(--bh-r); outline: none; color: var(--bh-text); }
+.gb-sign-foot input:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.gb-left { font-size: 11px; color: var(--bh-text3); font-weight: 400; margin-left: 6px; }
+.gb-left.low { color: var(--bh-red); }
+.gb-err { text-align: left; min-height: 0; margin: 0; }
+.gb-err:empty { display: none; }
+.bh-btn svg, .gb-sign-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- the book ---------- */
+.gb-year { display: flex; align-items: baseline; gap: 12px; margin: 26px 2px 10px; font: 700 26px/1 var(--bh-display); color: var(--bh-brand); letter-spacing: .5px; }
+.gb-year::after { content: ''; flex: 1; height: 1px; background: var(--bh-border2); align-self: center; }
+.gb-year-note { font: 600 11px var(--bh-font); text-transform: uppercase; letter-spacing: .08em; color: #9a6a10; }
+.gb-gap { text-align: center; margin: 26px 0 4px; font-size: 12px; font-style: italic; color: var(--bh-text3); letter-spacing: .04em; white-space: pre; }
+
+.gb-entry { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: start; padding: 14px 16px; background: var(--bh-surface);
+  border: 1px solid var(--bh-border); border-radius: var(--bh-rl); }
+.gb-entry + .gb-entry { margin-top: 10px; }
+.gb-av { width: 38px; height: 38px; font-size: 13px; }
+.gb-av.g { background: var(--bh-honey-bg); color: #8a5a00; border: 1px solid #f0d898; }
+.gb-main { min-width: 0; }
+.gb-top { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.gb-name { font-weight: 700; font-size: 15px; color: var(--bh-text); }
+.gb-from { font-size: 13px; color: var(--bh-text2); }
+.gb-when { font-size: 12px; color: var(--bh-text3); margin-top: 1px; }
+.gb-msg { margin-top: 8px; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--bh-text); }
+.gb-tag { font-size: 10.5px; font-weight: 600; border-radius: 10px; padding: 1px 8px; border: 1px solid transparent; white-space: nowrap; }
+.gb-tag.guest { color: #8a5a00; background: var(--bh-honey-bg); border-color: #f0dfae; }
+.gb-tag.old { color: #6e5320; background: #f4ecd8; border-color: #e5d6b0; }
+.gb-tag.hid { color: var(--bh-red); background: var(--bh-red-bg); }
+.gb-new { font-size: 10px; font-weight: 700; color: #fff; background: var(--bh-red); border-radius: 4px; padding: 1px 6px; text-transform: uppercase; letter-spacing: .04em; }
+.gb-quote { font-size: 13px; color: var(--bh-text2); margin: 0 0 12px; padding: 6px 10px; background: var(--bh-surface2); border-left: 3px solid var(--bh-border2); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
+.gb-acts { display: flex; gap: 4px; opacity: .35; transition: opacity .15s; }
+.gb-entry:hover .gb-acts, .gb-acts:focus-within { opacity: 1; }
+
+/* the 2000-2001 entries: a little bit of the old site */
+.gb-entry.vintage { background: linear-gradient(#fffdf7, #fffaf0); border-color: #eadfc3; }
+.gb-entry.vintage .gb-msg { font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', cursive; font-size: 14px; color: #3d3423; }
+.gb-entry.vintage .gb-av { background: #efe4c8; color: #6e5320; border: 1px solid #e0cfa3; }
+
+.gb-entry.fresh { background: #fffaf0; box-shadow: inset 3px 0 0 var(--bh-accent); }
+.gb-entry.hidden { opacity: .55; border-style: dashed; }
+.gb-entry.pop { animation: gb-pop .45s ease-out; }
+@keyframes gb-pop { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.gb-empty { padding: 34px; margin-top: 14px; }
+.gb-empty b { display: block; font: 700 20px var(--bh-display); color: var(--bh-text2); margin-bottom: 4px; }
+#gb-list > .bh-alert { margin-top: 14px; }
+@media (max-width: 560px) {
+  .gb-entry { grid-template-columns: 32px 1fr; padding: 12px; }
+  .gb-av { width: 32px; height: 32px; font-size: 11px; }
+  .gb-acts { grid-column: 2; opacity: 1; }
+}
+
+/* ---------- guests (same look as the sign-in screen) ---------- */
+body.gb-guest { background: var(--bh-brand); }
+body.gb-guest .bh-login { position: fixed; overflow-y: auto; justify-content: flex-start; padding: 32px 16px; }
+body.gb-guest .bh-login > * { margin: auto 0; }
+.gb-guest-box { width: 460px; }
+.gb-guest-box .bh-wordmark { text-decoration: none; }
+.gb-guest-intro { font-size: 13.5px; color: var(--bh-text2); text-align: center; margin: -6px 0 18px; line-height: 1.5; }
+.gb-guest-box .bh-field > span { display: flex; align-items: baseline; justify-content: space-between; }
+.gb-sign-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.gb-trap { position: absolute !important; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.gb-thanks { text-align: center; }
+.gb-thanks-ico { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 12px; background: var(--bh-green-bg); color: var(--bh-green); display: flex; align-items: center; justify-content: center; }
+.gb-thanks-ico svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.gb-thanks-t { font: 700 28px var(--bh-display); color: var(--bh-brand); letter-spacing: .3px; }
+.gb-thanks p { color: var(--bh-text2); font-size: 14px; margin: 8px 0 18px; }

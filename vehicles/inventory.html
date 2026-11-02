@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Chrisware / bellhive99.com - RESOURCES > Inventory -->
+<title>Inventory · bellhive99</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="vehicles.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap vh-wrap">
+    <div class="bh-page-head">
+      <div>
+        <div class="crumb">Resources</div>
+        <h1><i class="ti ti-clipboard-list vh-title-ico"></i>Inventory</h1>
+      </div>
+      <div class="vh-head-acts" id="vh-acts"></div>
+    </div>
+    <div id="mc"><div class="bh-empty">Loading…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/track.js"></script>
+  <script src="common.js"></script>
+  <script src="nhtsa.js"></script>
+  <script src="inventory.js"></script>
+</body>
+</html>

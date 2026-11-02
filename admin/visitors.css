@@ -1,0 +1,45 @@
+/* bellhive99.com - ADMIN > Visitors */
+.vz-wrap { max-width: 1180px; }
+.vz-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.vz-filters select { font: 13px var(--bh-font); padding: 7px 10px; border: 1px solid var(--bh-border2); border-radius: var(--bh-r); background: #fff; color: var(--bh-text); outline: none; }
+.vz-filters select:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.vz-check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--bh-text2); margin-left: 4px; }
+.vz-check input { accent-color: var(--bh-brand); }
+
+.vz-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 760px) { .vz-tiles { grid-template-columns: repeat(2, 1fr); } }
+.vz-tile { background: var(--bh-surface); border: 1px solid var(--bh-border); border-radius: var(--bh-rl); padding: 12px 16px; }
+.vz-tile b { display: block; font: 700 30px/1.1 var(--bh-display); color: var(--bh-text); font-variant-numeric: tabular-nums; }
+.vz-tile span { font-size: 12px; color: var(--bh-text3); }
+
+.vz-map-card { padding: 0; overflow: hidden; }
+#vz-map { height: 440px; background: #e9eef2; }
+@media (max-width: 640px) { #vz-map { height: 320px; } }
+.vz-map-note { font-size: 12px; color: var(--bh-text3); padding: 8px 14px; border-top: 1px solid var(--bh-border); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.vz-key { display: inline-flex; align-items: center; gap: 6px; }
+.vz-key i { display: inline-block; border-radius: 50%; background: rgba(214,138,22,.35); border: 2px solid #c27a10; }
+
+.vz-cols { display: grid; grid-template-columns: 1fr 1.35fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 900px) { .vz-cols { grid-template-columns: 1fr; } }
+.vz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.vz-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--bh-text3); text-transform: uppercase; letter-spacing: .06em; padding: 8px 10px; border-bottom: 1px solid var(--bh-border); background: var(--bh-surface2); }
+.vz-table td { padding: 8px 10px; border-bottom: 1px solid var(--bh-border); vertical-align: top; }
+.vz-table tr:last-child td { border-bottom: 0; }
+.vz-table td.num, .vz-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vz-table tbody tr { cursor: default; }
+.vz-table tbody tr.vz-click { cursor: pointer; }
+.vz-table tbody tr.vz-click:hover { background: var(--bh-honey-bg); }
+.vz-scroll { max-height: 460px; overflow-y: auto; }
+.vz-when { color: var(--bh-text3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vz-who { font-weight: 600; }
+.vz-anon { color: var(--bh-text2); }
+.vz-small { font-size: 11px; color: var(--bh-text3); }
+.vz-bot { font-size: 10px; font-weight: 600; color: var(--bh-text3); border: 1px solid var(--bh-border2); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.vz-flag { margin-right: 5px; }
+.vz-card-head { padding: 12px 14px 0; }
+.vz-card-head h2 { margin: 0 0 8px; }
+
+/* leaflet tooltip in site style */
+.leaflet-tooltip.vz-tip { background: var(--bh-brand); color: #fff; border: 0; border-radius: 8px; padding: 6px 10px; font: 12px var(--bh-font); box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.leaflet-tooltip.vz-tip b { font-size: 14px; display: block; }
+.leaflet-tooltip.vz-tip::before { display: none; }

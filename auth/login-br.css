@@ -1,0 +1,144 @@
+/* bellhive99.com - sign-in screen, neo-noir "rain city" look.
+ * Applies only to the loading + login screens (.bh-loading, .bh-login); everything else uses auth.css. */
+:root {
+  --br-night: #04060c;
+  --br-panel: rgba(8, 12, 22, 0.72);
+  --br-cyan: #3ee8ff;
+  --br-cyan-dim: rgba(62, 232, 255, 0.35);
+  --br-amber: #ffad42;
+  --br-amber-deep: #e8871e;
+  --br-red: #ff4a3a;
+  --br-text: #d6e4f0;
+  --br-muted: #6f8196;
+  --br-wide: 'Michroma', 'Eurostile', 'Arial Black', sans-serif;
+  --br-mono: 'Share Tech Mono', 'Consolas', ui-monospace, monospace;
+}
+
+/* ---------- backdrop: night sky, haze, skyline, rain ---------- */
+.bh-loading, .bh-login {
+  background:
+    radial-gradient(1300px 560px at 72% 112%, rgba(255, 140, 40, 0.30), transparent 64%),
+    radial-gradient(1000px 520px at 15% 106%, rgba(40, 170, 200, 0.20), transparent 62%),
+    radial-gradient(1600px 600px at 50% -10%, rgba(30, 60, 90, 0.35), transparent 70%),
+    linear-gradient(180deg, #03060b 0%, #071019 45%, #0d1418 100%);
+  overflow: hidden;
+}
+.br-city, .br-rain, .br-scan { position: absolute; inset: 0; pointer-events: none; }
+.br-city svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 62%; }
+.br-rain { width: 100%; height: 100%; }
+/* 2049: amber haze rolling over the city */
+.br-fog { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 30% 78%, rgba(255, 150, 60, 0.22), transparent 70%),
+    radial-gradient(55% 35% at 75% 70%, rgba(255, 120, 40, 0.20), transparent 70%),
+    linear-gradient(180deg, transparent 35%, rgba(255, 140, 50, 0.10) 70%, rgba(120, 60, 20, 0.28) 100%);
+  background-size: 160% 100%, 170% 100%, 100% 100%;
+  animation: br-drift 60s ease-in-out infinite alternate;
+}
+@keyframes br-drift { from { background-position: 0% 0, 100% 0, 0 0; } to { background-position: 100% 0, 0% 0, 0 0; } }
+.br-scan {
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+.bh-login::after {  /* vignette */
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.65) 100%);
+}
+
+/* ---------- loading ---------- */
+.bh-loading .bh-wordmark { color: var(--br-text); }
+.bh-loading .bh-spinner { border-color: rgba(62,232,255,0.15); border-top-color: var(--br-cyan); box-shadow: 0 0 18px rgba(62,232,255,0.25); }
+.bh-loading .bh-loading-msg { font-family: var(--br-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--br-muted); }
+
+/* ---------- wordmark ---------- */
+.bh-loading .bh-wordmark, .bh-login .bh-wordmark {
+  font: 400 34px/1 var(--br-wide); letter-spacing: .18em; text-transform: uppercase;
+  color: #eef6fb;
+  text-shadow: 0 0 1px #fff, 0 0 10px rgba(150,220,240,0.45), 0 0 34px rgba(62,200,232,0.22);
+  white-space: nowrap;
+}
+.bh-login .bh-wordmark b, .bh-loading .bh-wordmark b {
+  font-weight: 400; color: inherit; text-shadow: inherit;
+}
+@keyframes br-flicker {
+  0%, 18%, 20%, 54%, 56%, 100% { opacity: 1; }
+  19% { opacity: .35; } 55% { opacity: .6; } 55.5% { opacity: .2; }
+}
+
+/* ---------- panel ---------- */
+.bh-login .bh-login-box {
+  position: relative; z-index: 2;
+  width: 420px; padding: 38px 40px 24px;
+  background: var(--br-panel);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2);
+  border: 1px solid rgba(62,232,255,0.22); border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 30px 90px rgba(0,0,0,0.7), inset 0 0 40px rgba(62,232,255,0.06);
+  color: var(--br-text);
+}
+/* corner brackets */
+.bh-login .bh-login-box::before, .bh-login .bh-login-box::after {
+  content: ''; position: absolute; width: 22px; height: 22px; border: 2px solid var(--br-cyan);
+  filter: drop-shadow(0 0 6px var(--br-cyan));
+}
+.bh-login .bh-login-box::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+.bh-login .bh-login-box::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+.bh-login .bh-logo { margin-bottom: 30px; }
+.bh-login .bh-logo .bar { width: 120px; height: 1px; margin-top: 18px; background: linear-gradient(90deg, transparent, var(--br-cyan), transparent); box-shadow: 0 0 10px var(--br-cyan); }
+
+/* ---------- fields ---------- */
+.bh-login .bh-field > span {
+  font: 12px var(--br-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--br-cyan);
+  opacity: .8; margin-bottom: 6px;
+}
+.bh-login .bh-field input {
+  background: rgba(2, 6, 14, 0.75); color: #f2f8ff;
+  border: 1px solid rgba(111,129,150,0.45); border-radius: 2px;
+  font: 16px var(--br-mono); letter-spacing: .04em; padding: 11px 12px;
+  caret-color: var(--br-amber);
+}
+.bh-login .bh-field input::placeholder { color: #4b5b6e; }
+.bh-login .bh-field input:focus {
+  border-color: var(--br-cyan);
+  box-shadow: 0 0 0 1px var(--br-cyan-dim), 0 0 18px rgba(62,232,255,0.25), inset 0 0 12px rgba(62,232,255,0.08);
+}
+.bh-login input:-webkit-autofill { -webkit-text-fill-color: #f2f8ff; -webkit-box-shadow: 0 0 0 40px #050a14 inset; caret-color: var(--br-amber); }
+
+/* ---------- button ---------- */
+.bh-login .bh-login-btn {
+  margin-top: 10px; padding: 13px;
+  background: rgba(255, 173, 66, 0.07); color: #ffe2b8;
+  border: 1px solid var(--br-amber); border-radius: 2px;
+  font: 400 14px var(--br-wide); letter-spacing: .32em; text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255,173,66,0.7);
+  box-shadow: 0 0 14px rgba(255,173,66,0.25), inset 0 0 14px rgba(255,173,66,0.10);
+  transition: background .15s, box-shadow .15s, color .15s;
+}
+.bh-login .bh-login-btn:hover:not(:disabled) {
+  background: var(--br-amber); color: #1a0f02; text-shadow: none;
+  box-shadow: 0 0 24px rgba(255,173,66,0.6), 0 0 60px rgba(232,135,30,0.3);
+}
+.bh-login .bh-login-btn:focus-visible { outline: 1px solid #fff; outline-offset: 3px; }
+
+/* ---------- messages / links / readout ---------- */
+.bh-login .bh-err { font: 13px var(--br-mono); color: #ff8a6a; letter-spacing: .03em; min-height: 20px; }
+.bh-login .bh-forgot { margin-top: 14px; font: 12px var(--br-mono); letter-spacing: .14em; text-transform: uppercase; }
+.bh-login .bh-forgot a { color: var(--br-cyan); text-shadow: 0 0 8px rgba(62,232,255,0.35); }
+.bh-login .bh-login-foot {
+  display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; padding-top: 12px;
+  border-top: 1px solid rgba(111,129,150,0.25);
+  font: 11px var(--br-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--br-muted); text-align: left;
+}
+.br-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--br-cyan); box-shadow: 0 0 8px var(--br-cyan); margin-right: 7px; vertical-align: 1px; animation: br-blink 2.4s infinite; }
+@keyframes br-blink { 50% { opacity: .25; } }
+
+@media (max-width: 480px) {
+  .bh-login .bh-login-box { padding: 30px 22px 20px; }
+  .bh-loading .bh-wordmark, .bh-login .bh-wordmark { font-size: 24px; letter-spacing: .14em; }
+  .bh-login .bh-login-foot { flex-direction: column; gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bh-login .bh-wordmark b, .bh-loading .bh-wordmark b, .br-dot { animation: none; }
+  .br-rain { display: none; }
+  .br-fog { animation: none; }
+}

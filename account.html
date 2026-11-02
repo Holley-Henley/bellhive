@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth/config.js"></script>
   <script src="auth/auth.js" data-root=""></script>
+  <script src="auth/track.js"></script>
   <script>
   (async function () {
     const { el, toast, fmtWhen } = BH.ui;
@@ -23,6 +24,8 @@
       const { user } = await BH.init();
       if (!user) return BH.requireLogin();
     } catch (e) { mc.replaceChildren(el('div', { class: 'bh-alert' }, e.message)); return; }
+    BH.track('account');
+    BH.pageOpen('My Account', 'site');
 
     function render() {
       const p = BH.profile;

@@ -17,10 +17,20 @@ WL.openStore = async function (user, sbClient) {
   return store;
 };
 
-/* Imports the old spreadsheet (data/history.js) into the signed-in user's log. */
-WL.importHistory = async function (store, onProgress) {
-  if (!WL.HISTORY) await WL.u.loadScript('data/history.js');
-  const H = WL.HISTORY;
+/* Imports the old spreadsheet history into the signed-in user's log.
+ * `H` is the contents of workout-history-2024-2026.json (kept on your computer, not on the website):
+ * { sets: [[exerciseKey, date, time, setNo, reps, weightLbs, durationSec, distanceMi]], daily: [[date, metricKey, value]] } */
+WL.parseHistoryFile = function (text) {
+  let H;
+  try { H = JSON.parse(text); } catch (e) { throw new Error("That file isn't a workout history file (it isn't valid JSON)."); }
+  if (!H || !Array.isArray(H.sets) || !Array.isArray(H.daily)) throw new Error("That file doesn't look like a workout history file.");
+  const known = new Set(WL.catalog.DEFAULT_EXERCISES.map((e) => e.key));
+  const bad = H.sets.find((r) => !Array.isArray(r) || !known.has(r[0]) || !/^\d{4}-\d{2}-\d{2}$/.test(r[1]));
+  if (bad) throw new Error('The history file has an unexpected row: ' + JSON.stringify(bad).slice(0, 80));
+  return H;
+};
+WL.importHistory = async function (store, onProgress, H) {
+  if (!H) throw new Error('Choose the workout history file first.');
   let exercises = await store.listExercises();
   let metrics = await store.listMetrics();
   const exByKey = {}, mByKey = {};

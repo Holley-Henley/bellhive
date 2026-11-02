@@ -30,6 +30,8 @@ WL.app = (function () {
   async function render() {
     const { view, args } = parseHash();
     const v = WL.views[view] || WL.views.log;
+    const tab = TABS.find((t) => t.id === (WL.views[view] ? view : 'log'));
+    if (window.BH && BH.pageOpen && BH.user) BH.pageOpen('Workout › ' + (tab ? tab.label : view), 'workout');
     navEl.querySelectorAll('a').forEach((a) => a.classList.toggle('on', a.dataset.view === (WL.views[view] ? view : 'log')));
     const token = ++renderToken;
     const container = h('div.view.view-' + view);

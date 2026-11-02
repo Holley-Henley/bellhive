@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visitors · bellhive99 admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="visitors.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap vz-wrap">
+    <div class="bh-page-head">
+      <div><div class="crumb">Admin</div><h1>Visitors</h1></div>
+    </div>
+    <div id="vz-filters"></div>
+    <div id="mc"><div class="bh-empty">Loading…</div></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="visitors.js"></script>
+</body>
+</html>

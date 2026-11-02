@@ -23,6 +23,7 @@
       mc.replaceChildren(el('div', { class: 'bh-alert' }, e.message)); return;
     }
     if (!BH.isAdmin()) { mc.replaceChildren(el('div', { class: 'bh-card bh-empty' }, 'Access restricted - admins only.')); return; }
+    BH.pageOpen('Admin › Users', 'admin');
     document.getElementById('um-actions').replaceChildren(
       el('button', { class: 'bh-btn primary', type: 'button', onclick: openAdd, html: ICON.plus + ' Add User' }));
     await load();
@@ -149,7 +150,7 @@
       el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
         el('button', { class: 'bh-btn sm', type: 'button', onclick: async () => {
           if (!u.email) { toast('No email on file for this user', 'error'); return; }
-          try { await BH.sendResetEmail(u.email); toast('Password reset email sent to ' + u.email, 'ok'); }
+          try { await BH.sendResetEmail(u.email); toast('Password reset email sent to ' + u.email, 'ok'); BH.audit('user_reset_email', 'sent a password reset email to ' + (u.full_name || u.email), u.email, 'admin'); }
           catch (x) { toast('Failed to send: ' + x.message, 'error'); }
         } }, 'Send Reset Email'),
         el('button', { class: 'bh-btn sm', type: 'button', onclick: () => { inline.style.display = inline.style.display === 'none' ? '' : 'none'; } }, 'Set New Password Directly')),
@@ -175,6 +176,7 @@
           }
           const { error } = await BH.sb.from('profiles').update({ full_name: name.value.trim(), phone: phone.value.trim() || null, role: role.value }).eq('id', u.id);
           if (error) { err.textContent = error.message; return; }
+          // the database logs this edit with before/after values
           close(); toast('User updated', 'ok');
           if (isMe) await BH.reloadProfile();
           await load();

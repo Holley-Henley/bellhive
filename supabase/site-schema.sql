@@ -1,6 +1,6 @@
 -- bellhive99.com - site-wide accounts (profiles, roles, active flag)
--- Run once in Supabase -> SQL Editor. Safe to re-run.
--- Run this BEFORE workout/sql/schema.sql (order doesn't strictly matter, but this is the site layer).
+-- Already applied to the bellhive99 Supabase project (Oct 30, 2026). Safe to re-run.
+-- Run this BEFORE workout/sql/schema.sql.
 
 -- One profile per sign-in account.
 create table if not exists public.profiles (
@@ -15,11 +15,17 @@ create table if not exists public.profiles (
   created_at            timestamptz not null default now()
 );
 
--- Is the caller an active admin? (security definer so policies can use it without recursion)
-create or replace function public.is_admin()
+-- Admin check, kept in a schema the public API does not expose.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and active);
 $$;
+revoke execute on function private.is_admin() from public, anon;
+grant execute on function private.is_admin() to authenticated;
 
 -- New auth user -> profile. The very first account becomes the admin.
 create or replace function public.handle_new_user()
@@ -54,7 +60,7 @@ create trigger on_auth_user_updated after update of email, last_sign_in_at on au
 create or replace function public.protect_profile_fields()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if auth.uid() is null or public.is_admin() then return new; end if;  -- service role / admins
+  if auth.uid() is null or private.is_admin() then return new; end if;  -- service key / admins
   new.role := old.role;
   new.active := old.active;
   new.email := old.email;
@@ -66,14 +72,19 @@ drop trigger if exists protect_profile_fields on public.profiles;
 create trigger protect_profile_fields before update on public.profiles
   for each row execute function public.protect_profile_fields();
 
+-- Trigger functions are never callable through the API (the triggers still fire).
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.sync_user_fields() from public, anon, authenticated;
+revoke execute on function public.protect_profile_fields() from public, anon, authenticated;
+
 alter table public.profiles enable row level security;
 drop policy if exists "read own or admin" on public.profiles;
 create policy "read own or admin" on public.profiles for select to authenticated
-  using (id = (select auth.uid()) or public.is_admin());
+  using (id = (select auth.uid()) or (select private.is_admin()));
 drop policy if exists "update own or admin" on public.profiles;
 create policy "update own or admin" on public.profiles for update to authenticated
-  using (id = (select auth.uid()) or public.is_admin())
-  with check (id = (select auth.uid()) or public.is_admin());
+  using (id = (select auth.uid()) or (select private.is_admin()))
+  with check (id = (select auth.uid()) or (select private.is_admin()));
 -- inserts come from the trigger / edge function only; deletes cascade from auth.users
 
 -- Backfill accounts created before this script ran; the earliest one becomes admin

@@ -44,6 +44,12 @@
 .bh-forgot { text-align: center; margin-top: 12px; font-size: 13px; color: var(--bh-text3); }
 .bh-forgot a, .bh-link { color: #9a6a10; cursor: pointer; text-decoration: none; }
 .bh-forgot a:hover, .bh-link:hover { text-decoration: underline; }
+/* "Not a member? Sign our Guest Book" on the sign-in screen */
+.bh-guest-link { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 9px 12px; border: 1px dashed #e5c97f; border-radius: var(--bh-r);
+  background: var(--bh-honey-bg); color: #6b4a07; font-size: 13px; text-decoration: none; transition: .15s; }
+.bh-guest-link:hover { border-style: solid; border-color: var(--bh-accent); background: #fcebc0; }
+.bh-guest-link b { color: #8a5a00; }
+.bh-guest-link svg { width: 15px; height: 15px; flex: none; fill: none; stroke: #b8862a; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .bh-login-foot { text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bh-border); font-size: 11px; color: var(--bh-text3); letter-spacing: .04em; }
 
 /* ---------- site bar (above the vintage frames) ---------- */
@@ -124,3 +130,85 @@ body.bh-page { margin: 0; background: var(--bh-bg); color: var(--bh-text); font:
 .bh-toast.ok { background: var(--bh-green); }
 .bh-toast.error { background: var(--bh-red); }
 .bh-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- audit log ---------- */
+.al-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.al-select, .al-search { font: 13px var(--bh-font); padding: 7px 10px; border: 1px solid var(--bh-border2); border-radius: var(--bh-r); background: #fff; color: var(--bh-text); outline: none; }
+.al-select:focus, .al-search:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.al-search { flex: 1; min-width: 180px; }
+.al-count { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--bh-text3); margin: 0 2px 8px; }
+.al-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+.al-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.al-card { padding: 0 16px; }
+.al-day { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--bh-text3); padding: 14px 0 6px; border-bottom: 1px solid var(--bh-border); }
+.al-row { display: grid; grid-template-columns: 70px 12px 1fr auto; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--bh-border); font-size: 13px; cursor: pointer; }
+.al-row:hover { background: var(--bh-surface2); }
+.al-row:focus-visible { outline: 2px solid var(--bh-brand-mid); outline-offset: -2px; }
+.al-row:last-child { border-bottom: 0; }
+.al-time { color: var(--bh-text3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.al-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9aa3b0; }
+.al-dot.k-access { background: #2a8fb5; }
+.al-dot.k-create { background: var(--bh-green); }
+.al-dot.k-update { background: #d39a1e; }
+.al-dot.k-security { background: #7b4fc4; }
+.al-dot.k-delete { background: var(--bh-red); }
+.al-who { font-weight: 600; color: var(--bh-brand); }
+.al-role { font-size: 11px; color: var(--bh-text3); }
+.al-what { color: var(--bh-text2); }
+.al-ref { color: var(--bh-text3); }
+.al-mod { font-size: 11px; color: var(--bh-text3); background: var(--bh-surface2); border: 1px solid var(--bh-border); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.al-dot.k-view { background: #8fa2b8; }
+.al-dot.k-visit { background: #c7cdd6; border: 1px solid #9aa3b0; }
+.al-filters2 { margin-top: -4px; gap: 18px; }
+.al-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--bh-text2); cursor: pointer; user-select: none; }
+.al-check input { accent-color: var(--bh-brand-mid); width: 15px; height: 15px; margin: 0; }
+.al-row { grid-template-columns: minmax(70px, max-content) 12px 1fr auto; }
+.al-tags { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.al-src { font-size: 10.5px; border-radius: 10px; padding: 0 7px; border: 1px solid transparent; }
+.al-src.s-browser { color: #5c6b7a; background: #eef2f6; border-color: #dbe2ea; }
+.al-src.s-database { color: #22704a; background: #e7f5ec; border-color: #c9e8d4; }
+.al-src.s-server { color: #6b44a8; background: #f1ebfb; border-color: #e0d4f5; }
+.al-src.s-visit { color: #8a6a1e; background: var(--bh-honey-bg); border-color: #f0dfae; }
+.al-count-badge { font-size: 11px; font-weight: 600; color: #8a5a00; background: var(--bh-honey-bg); border-radius: 10px; padding: 0 7px; }
+.al-more { font-size: 12px; color: var(--bh-text3); font-style: italic; }
+.al-caret { color: var(--bh-text3); font-size: 11px; width: 10px; text-align: center; }
+.al-row.open { background: var(--bh-surface2); }
+.al-kids { border-left: 2px solid var(--bh-border2); margin-left: 34px; padding-left: 10px; }
+.al-child { font-size: 12.5px; }
+.al-detail { background: var(--bh-surface2); border-bottom: 1px solid var(--bh-border); padding: 10px 14px 14px 92px; font-size: 12.5px; }
+.al-facts { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0 0 10px; }
+.al-facts dt { color: var(--bh-text3); }
+.al-facts dd { margin: 0; color: var(--bh-text); word-break: break-word; }
+.al-diff { border-collapse: collapse; width: 100%; max-width: 640px; background: #fff; border: 1px solid var(--bh-border); border-radius: var(--bh-r); overflow: hidden; }
+.al-diff th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--bh-text3); background: var(--bh-surface2); padding: 6px 10px; border-bottom: 1px solid var(--bh-border); }
+.al-diff td { padding: 6px 10px; border-bottom: 1px solid var(--bh-border); vertical-align: top; word-break: break-word; }
+.al-diff tr:last-child td { border-bottom: 0; }
+.al-diff td:first-child { color: var(--bh-text2); width: 30%; }
+.al-old { color: #9b2c2c; text-decoration: line-through; text-decoration-color: rgba(155,44,44,.45); }
+.al-new { color: #1f6b43; font-weight: 600; }
+@media (max-width: 600px) {
+  .al-row { grid-template-columns: 58px 10px 1fr; } .al-tags { display: none; }
+  .al-detail { padding-left: 14px; } .al-kids { margin-left: 8px; }
+}
+
+/* ---------- site version (sign-in screen) ---------- */
+.bh-login-ver { text-align: center; margin-top: 6px; font: 11px 'Consolas', 'Courier New', monospace; color: var(--bh-text3); letter-spacing: .02em; }
+
+/* ---------- release notes ---------- */
+.rn-card { overflow: visible; }
+.rn-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; background: var(--bh-surface2); border-bottom: 1px solid var(--bh-border); border-radius: var(--bh-rl) var(--bh-rl) 0 0; position: sticky; top: 0; z-index: 10; }
+.rn-title { font-size: 14px; font-weight: 600; }
+.rn-sub { font-size: 11px; color: var(--bh-text3); margin-top: 2px; }
+.rn-mono { font: 11px 'Consolas', 'Courier New', monospace; color: var(--bh-text3); white-space: nowrap; }
+.rn-month-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 20px; background: var(--bh-surface2); border: 0; border-bottom: 1px solid var(--bh-border); cursor: pointer; font: 13px var(--bh-font); color: var(--bh-text); text-align: left; position: sticky; top: 55px; z-index: 9; }
+.rn-month-head:hover { background: var(--bh-honey-bg); }
+.rn-month:last-child:not(.open) .rn-month-head { border-bottom: 0; border-radius: 0 0 var(--bh-rl) var(--bh-rl); }
+.rn-month-label { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.rn-car { font-size: 12px; color: var(--bh-text3); width: 10px; }
+.rn-count { font-size: 11px; color: var(--bh-text3); }
+.rn-entry { padding: 16px 20px; border-bottom: 1px solid var(--bh-border); }
+.rn-month:last-child .rn-entry:last-child { border-bottom: 0; }
+.rn-entry-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.rn-ver { font: 600 13px 'Consolas', 'Courier New', monospace; color: #9a6a10; }
+.rn-date { font-size: 11px; color: var(--bh-text3); }
+.rn-items { font-size: 13px; color: var(--bh-text2); line-height: 1.75; padding-left: 18px; margin: 0; }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guest Book · bellhive99</title>
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="guestbook.css">
+</head>
+<!-- Guest Book.
+     Members: opened from the left menu (shows inside the main frame) - read every entry and sign as yourself.
+     Guests:  opened from "Sign our Guest Book" on the sign-in screen - leave a note without an account. -->
+<body class="bh-page">
+  <div id="gb"><div class="bh-empty">Loading…</div></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/track.js"></script>
+  <script src="guestbook.js"></script>
+</body>
+</html>

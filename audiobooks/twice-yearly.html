@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Chrisware / bellhive99.com - AUDIOBOOKS > Twice Yearly
+     Dashboard for the books re-listened twice a year (the BOOKS - BI-ANNUAL sheet of Twice-Yearly_Book_Listening.xlsm).
+     The complete library has its own dashboard: library.html. Data: supabase/audiobooks.sql -->
+<title>Twice Yearly · bellhive99</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="audiobooks.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap ty-wrap">
+    <div class="bh-page-head">
+      <div>
+        <div class="crumb">Audiobooks</div>
+        <h1><i class="ti ti-repeat ty-title-ico"></i>Twice Yearly</h1>
+      </div>
+      <div id="ty-acts"></div>
+    </div>
+    <div id="ty"><div class="bh-empty">Loading…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/track.js"></script>
+  <script src="twice-yearly.js"></script>
+</body>
+</html>

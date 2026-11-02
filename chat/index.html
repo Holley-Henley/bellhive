@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat · bellhive99</title>
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="chat.css">
+</head>
+<!-- Chat. Shown inside the home page (INDEXB.HTM) and also works on its own,
+     e.g. bellhive99.com/chat/ on a phone. -->
+<body class="bh-chat-body">
+
+<div class="ch" id="ch">
+  <div class="ch-head">
+    <div class="ch-title">
+      <span class="ch-name">Chat</span>
+      <span class="ch-here" id="ch-here"><i class="ch-dot"></i><span id="ch-here-txt">Connecting…</span></span>
+    </div>
+    <div class="ch-tools">
+      <button class="ch-tool" type="button" id="ch-bell" title="Desktop alerts when someone posts and you're in another tab"></button>
+      <button class="ch-tool" type="button" id="ch-sound" title="Sounds for sent and new messages"></button>
+    </div>
+  </div>
+
+  <div class="ch-list" id="ch-list" aria-live="polite">
+    <div class="ch-status" id="ch-status">Loading messages…</div>
+  </div>
+
+  <button class="ch-jump bh-gone" type="button" id="ch-jump">↓ New messages</button>
+  <div class="ch-typing" id="ch-typing"></div>
+
+  <form class="ch-compose" id="ch-form" autocomplete="off">
+    <textarea id="ch-input" rows="1" maxlength="4000" placeholder="Say something to the family…" disabled></textarea>
+    <button class="ch-send" type="submit" id="ch-send" disabled title="Send (Enter)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></svg>
+    </button>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../auth/config.js"></script>
+<script src="../auth/auth.js" data-root="../"></script>
+<script src="common.js"></script>
+<script src="chat.js"></script>
+</body>
+</html>

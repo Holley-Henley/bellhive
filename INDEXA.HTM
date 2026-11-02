@@ -6,6 +6,12 @@
 <title>New Page 3</title>
 <base target="main">
 <style fprolloverstyle>A:hover {color: #FF0000}
+/* Menu sizing (Oct 31 2026): items left aligned, bigger section titles and links,
+   one even line spacing. The star and version (.bh-keep) stay centered. */
+td p:not(.bh-keep) { text-align: left !important; padding-left: 12px; margin-top: 0 !important; margin-bottom: 0 !important; line-height: 16px !important; }
+td a font { font-size: 12px !important; }
+td font[face="Century Gothic"] { font-size: 13px !important; }
+.bh-ico { vertical-align: -2px; margin-right: 5px; }
 </style>
 </head>
 
@@ -14,104 +20,114 @@
   <table border="0" width="62" height="1068">
     <tr>
       <td width="183" height="585" valign="top">
-    <p align="center"><font face="Tahoma"><map name="FPMap0">
+    <p align="center" class="bh-keep"><font face="Tahoma"><map name="FPMap0">
     <area href="index.html" shape="rect" coords="0, 4, 187, 173" target="_top"></map><img border="0" src="directions.gif" usemap="#FPMap0" width="175" height="174"></font></p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><b><a href="workout/index.html" target="_top"><font face="Tahoma" size="3">Workout</font></a></b></p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><b><a href="pict.htm"><font face="Tahoma" size="3">Pictures</font></a></b></p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><a href="http://www.geocities.com/slappyjoerocko"><span style="mso-bidi-font-size: 12.0pt"><b><font face="Tahoma" size="3">Graham
-    Genealogy</font></b></span></a></p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><a href="message.htm"><span style="mso-bidi-font-size: 12.0pt"><b><font face="Tahoma" size="3">Guest
-    Book</font></b></span></a></p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">SEARCH
+    <p align="center" class="bh-keep" style="line-height: 12px; margin-top: -10px; margin-bottom: 10px"><font face="Tahoma" size="1" color="#5f5747"><span id="bh-ver" title="Site version">&nbsp;</span></font></p>
+    <p align="left"><b><a id="bh-fileshare-link" href="fileshare/index.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/></svg><font face="Tahoma" size="1">File Share</font></a></b><span id="bh-fileshare-count" style="display:none;margin-left:6px;font:bold 11px Tahoma,sans-serif;color:#fff;background:#b9382b;border-radius:9px;padding:1px 6px;vertical-align:1px"></span></p>
+    <p align="left"><b><a href="workout/index.html" target="_top"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg><font face="Tahoma" size="1">Workout</font></a></b></p>
+    <p align="left"><b><a href="pictures/index.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><font face="Tahoma" size="1">Pictures</font></a></b></p>
+    <p align="left"><b><a href="http://www.geocities.com/slappyjoerocko"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg><font face="Tahoma" size="1">Graham Genealogy</font></a></b></p>
+    <p align="left"><b><a id="bh-guestbook-link" href="guestbook/index.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg><font face="Tahoma" size="1">Guest Book</font></a></b><span id="bh-guestbook-count" style="display:none;margin-left:6px;font:bold 11px Tahoma,sans-serif;color:#fff;background:#b9382b;border-radius:9px;padding:1px 6px;vertical-align:1px"></span></p>
+    <p align="left" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <!-- RESOURCES (Inventory & Maintenance, cloned from Project Exchange) -->
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">RESOURCES</font></b></p>
+    <p align="left" style="line-height: 100%; margin-top: 1px; margin-bottom: 0"><span style="color: blue"><a href="vehicles/inventory.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h.01M13 12h2M9 16h.01M13 16h2"/></svg><font face="Tahoma" size="1">Inventory</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: 1px; margin-bottom: 0"><span style="color: blue"><a href="vehicles/maintenance.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10h3V7L6.5 3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1-3 3l-6-6a6 6 0 0 1-8-8L7 10"/></svg><font face="Tahoma" size="1">Maintenance</font></a></span></p>
+    <p align="left" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <!-- AUDIOBOOKS: Twice Yearly = the books re-listened twice a year (own dashboard); Library = the complete Audible inventory -->
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">AUDIOBOOKS</font></b></p>
+    <p align="left" style="line-height: 100%; margin-top: 1px; margin-bottom: 0"><span style="color: blue"><a href="audiobooks/twice-yearly.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg><font face="Tahoma" size="1">Twice Yearly</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: 1px; margin-bottom: 0"><span style="color: blue"><a href="audiobooks/library.html"><svg class="bh-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#8a5a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg><font face="Tahoma" size="1">Library</font></a></span></p>
+    <p align="left" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">SEARCH
     ENGINES</font></b></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.yahoo.com"><font face="Tahoma" size="1">Yahoo</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.altavista.com"><font face="Tahoma" size="1">Alta
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.yahoo.com"><font face="Tahoma" size="1">Yahoo</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.altavista.com"><font face="Tahoma" size="1">Alta
     Vista</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.lycos.com"><font face="Tahoma" size="1">Lycos</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="margin-top: -5; margin-bottom: -5"><span style="mso-bidi-font-size: 12.0pt"><font size="1" face="Century Gothic"><b>WEATHER</b></font></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.wsfa.com/images/3332_G.html"><font face="Tahoma" size="1">Local
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.lycos.com"><font face="Tahoma" size="1">Lycos</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="margin-top: -5; margin-bottom: -5"><span style="mso-bidi-font-size: 12.0pt"><font size="1" face="Century Gothic"><b>WEATHER</b></font></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.wsfa.com/images/3332_G.html"><font face="Tahoma" size="1">Local
     Weather - Doppler</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.weather.com/weather/us/zips/36054.html"><font face="Tahoma" size="1">Local
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.weather.com/weather/us/zips/36054.html"><font face="Tahoma" size="1">Local
     Weather - Forecast</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.theweatherchannel.com"><font face="Tahoma" size="1">The
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.theweatherchannel.com"><font face="Tahoma" size="1">The
     Weather Channel</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.wsfa.com"><font face="Tahoma" size="1">WSFA</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>NEWS</b></font></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"> <a href="http://www.cnn.com"><font face="Tahoma" size="1"> CNN</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.rushlimbaugh.com"><font face="Tahoma" size="1">The
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.wsfa.com"><font face="Tahoma" size="1">WSFA</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>NEWS</b></font></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"> <a href="http://www.cnn.com"><font face="Tahoma" size="1"> CNN</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.rushlimbaugh.com"><font face="Tahoma" size="1">The
     Rush Limbaugh Show</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.foxnews.com"><font face="Tahoma" size="1">Fox
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.foxnews.com"><font face="Tahoma" size="1">Fox
     News Network</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.drudgereport.com"><font face="Tahoma" size="1">The
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.drudgereport.com"><font face="Tahoma" size="1">The
     Drudge Report</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.realclearpolitics.com"><font face="Tahoma" size="1">Real
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.realclearpolitics.com"><font face="Tahoma" size="1">Real
     Clear Politics</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.townhall.com/"><font face="Tahoma" size="1">Town
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.townhall.com/"><font face="Tahoma" size="1">Town
     Hall</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.newsday.com/ap/text/national/"><font face="Tahoma" size="1">Newsday.com</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font face="Century Gothic" size="1"><b>MISCELLANEOUS</b></font></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="https://service.dodgeplns.com"><font face="Tahoma" size="1">Dodge Plans </font></a></span> </p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://nelsonadams.usabuilding.com">
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.newsday.com/ap/text/national/"><font face="Tahoma" size="1">Newsday.com</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font face="Century Gothic" size="1"><b>MISCELLANEOUS</b></font></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="https://service.dodgeplns.com"><font face="Tahoma" size="1">Dodge Plans </font></a></span> </p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://nelsonadams.usabuilding.com">
     <font face="Tahoma" size="1"> 
     Nelson Adams Tracking</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.amazon.com"><font face="Tahoma" size="1"> Amazon</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.ups.com"><font face="Tahoma" size="1">UPS</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.tsum.edu"><font face="Tahoma" size="1">Troy
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.amazon.com"><font face="Tahoma" size="1"> Amazon</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.ups.com"><font face="Tahoma" size="1">UPS</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.tsum.edu"><font face="Tahoma" size="1">Troy
     State University at Montgomery</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"> <a href="http://www.maxfcu.com/"><font face="Tahoma" size="1">Max Federal Credit
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"> <a href="http://www.maxfcu.com/"><font face="Tahoma" size="1">Max Federal Credit
       Union&nbsp;</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.firstusa.com"><font face="Tahoma" size="1">Yahoo
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.firstusa.com"><font face="Tahoma" size="1">Yahoo
       Visa&nbsp; </font></a></span> </p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.nextcard.com"><font face="Tahoma" size="1"> Next
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.nextcard.com"><font face="Tahoma" size="1"> Next
     Card </font></a></span> </p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <a href="http://bsol.bellsouthonline.com/cgi-bin/gx.cgi/AppLogic+ecnmemsvcnas.LoginAppLogic"><font face="Tahoma" size="1"> Bell
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <a href="http://bsol.bellsouthonline.com/cgi-bin/gx.cgi/AppLogic+ecnmemsvcnas.LoginAppLogic"><font face="Tahoma" size="1"> Bell
     South Bill Payment</font></a></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"> <a href="http://www.yahoo.com"><font face="Tahoma" size="1"> Yahoo</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.amazon.com"><font face="Tahoma" size="1"> Amazon</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.ups.com"><font face="Tahoma" size="1">UPS</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">GAMING</font></b></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.unrealtournament.com"><font face="Tahoma" size="1">Unreal
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"> <a href="http://www.yahoo.com"><font face="Tahoma" size="1"> Yahoo</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"> <span style="color: blue"><a href="http://www.amazon.com"><font face="Tahoma" size="1"> Amazon</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.ups.com"><font face="Tahoma" size="1">UPS</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">GAMING</font></b></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.unrealtournament.com"><font face="Tahoma" size="1">Unreal
       Tournament</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://utbooty.unrealism.com/"><font face="Tahoma" size="1">UT
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://utbooty.unrealism.com/"><font face="Tahoma" size="1">UT
     Booty</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.planetunreal.com/nalicity/"><font face="Tahoma" size="1">Nali
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.planetunreal.com/nalicity/"><font face="Tahoma" size="1">Nali
     City</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>TRAVEL</b></font></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.counciltravel.com"><font face="Tahoma" size="1">Council
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>TRAVEL</b></font></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.counciltravel.com"><font face="Tahoma" size="1">Council
       Travel</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.travelocity.com"><font face="Tahoma" size="1">Travelocity&nbsp;</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.aboutscotland.com/linlith/garden.html"><font face="Tahoma" size="1">The
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.travelocity.com"><font face="Tahoma" size="1">Travelocity&nbsp;</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.aboutscotland.com/linlith/garden.html"><font face="Tahoma" size="1">The
     Garden Cottage</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>INTERNET</b></font></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://homepage.eircom.net/~leslie/testpage.htm"><font face="Tahoma" size="1">Modem
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><font size="1" face="Century Gothic"><b>INTERNET</b></font></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://homepage.eircom.net/~leslie/testpage.htm"><font face="Tahoma" size="1">Modem
     Speed Test</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">BREWING</font></b></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.realbeer.com"><font face="Tahoma" size="1">Real
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">BREWING</font></b></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.realbeer.com"><font face="Tahoma" size="1">Real
       Beer</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.morebeer.com"><font face="Tahoma" size="1">Beer
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.morebeer.com"><font face="Tahoma" size="1">Beer
       Beer and More Beer</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.guinness.ie/"><font face="Tahoma" size="1">Guinness</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.samadams.com/"><font face="Tahoma" size="1">Samuel
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.guinness.ie/"><font face="Tahoma" size="1">Guinness</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.samadams.com/"><font face="Tahoma" size="1">Samuel
     Adams</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.promash.com"><font face="Tahoma" size="1">Promash</font></a></span></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.cellar-homebrew.com/forum/beer/rec_calc.html"><font face="Tahoma" size="1">Brewing
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.promash.com"><font face="Tahoma" size="1">Promash</font></a></span></p>
+    <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="http://www.cellar-homebrew.com/forum/beer/rec_calc.html"><font face="Tahoma" size="1">Brewing
     Calculator</font></a></span></p>
     <div id="bh-admin-links" style="display: none">
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><b><font size="1" face="Century Gothic">ADMIN</font></b></p>
-    <p align="center" style="line-height: 100%; margin-top: -5; margin-bottom: -5"><span style="color: blue"><a href="admin/users.html"><font face="Tahoma" size="1">Users</font></a></span></p>
+    <p align="left" style="line-height: 12px; margin: 0">&nbsp;</p>
+    <p align="left" style="line-height: 12px; margin: 0"><b><font size="1" face="Century Gothic">ADMIN</font></b></p>
+    <p align="left" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/users.html"><font face="Tahoma" size="1">Users</font></a></span></p>
+    <p align="left" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/audit.html"><font face="Tahoma" size="1">Audit Log</font></a></span></p>
+    <p align="left" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/visitors.html"><font face="Tahoma" size="1">Visitors</font></a></span></p>
+    <p align="left" style="line-height: 12px; margin: 0"><span style="color: blue"><a href="admin/releases.html"><font face="Tahoma" size="1">Release Notes</font></a></span></p>
     </div>
     <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
     <p align="left" style="line-height: 100%; margin-top: -5; margin-bottom: -5">&nbsp;</p>
@@ -124,9 +140,36 @@
 
 
 <script>
-/* ADMIN section only shows for admins signed in through the site login (index.html) */
-try { var bhp = window.top.BH && window.top.BH.profile; if (bhp && bhp.role === "admin") document.getElementById("bh-admin-links").style.display = ""; } catch (e) {}
+/* ADMIN section only shows for admins signed in through the site login (index.html).
+   The home page tells this menu the role and the site version (shown under the star)
+   by postMessage, which also works when the site is opened straight from disk
+   (file://), where frames cannot read each other. */
+(function () {
+  var box = document.getElementById("bh-admin-links");
+  var ver = document.getElementById("bh-ver");
+  function show(role) { if (box && role === "admin") box.style.display = ""; }
+  function setVer(v) { if (ver && v) ver.textContent = "v" + v; }
+  try { var p = window.top.BH && window.top.BH.profile; if (p) show(p.role); } catch (e) {}
+  try { if (window.top.BH && window.top.BH.version) window.top.BH.version().then(setVer); } catch (e) {}
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data) return;
+    if (e.data.bhRole) show(e.data.bhRole);
+    if (e.data.bhVersion) setVer(e.data.bhVersion);
+  });
+  try { window.parent.postMessage({ bhAsk: "role" }, "*"); } catch (e) {}
+  /* Every menu click is reported to the home page, which writes it to the Audit Log. */
+  document.addEventListener("click", function (e) {
+    var a = e.target;
+    while (a && a.tagName !== "A") a = a.parentNode;
+    if (!a || !a.getAttribute("href")) return;
+    var text = (a.innerText || a.textContent || "").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    if (!text) { var img = a.getElementsByTagName("img")[0]; text = (img && (img.alt || img.title)) || ""; }
+    try { window.parent.postMessage({ bhNav: { text: text, href: a.getAttribute("href"), url: a.href, target: a.getAttribute("target") || "" } }, "*"); } catch (err) {}
+  }, true);
+})();
 </script>
+<script src="fileshare/menu.js"></script>
+<script src="guestbook/menu.js"></script>
 </body>
 
 </html>
