@@ -8,6 +8,8 @@
  *   audiobook_rotation  read here only to badge books that are on the Twice Yearly list,
  *                       and written when a book is added to that list from here
  * Each person keeps their own library: this page shows the rows owned by whoever is signed in.
+ * Media Dropbox (ADMIN > Settings): Scan Dropbox finds files nobody links to; Play / Download / MP3
+ *   in each book come from short-lived links made by the audiobooks edge function.
  * New books: Add Book (paste an Audible link; details come from the audiobooks edge function)
  *            and Import (an OpenAudible CSV/Excel export; only fills empty fields on existing books).
  * ============================================================ */
@@ -27,7 +29,7 @@
     length: { label: 'Longest', fn: (a, b) => (b.duration_seconds || 0) - (a.duration_seconds || 0) },
     rating: { label: 'Audible rating', fn: (a, b) => (b.rating || 0) - (a.rating || 0) || (b.rating_count || 0) - (a.rating_count || 0) },
   };
-  const S = { user: null, books: [], rotation: [], q: '', status: 'all', genre: '', sort: 'author', view: 'grid', limit: 120 };
+  const S = { user: null, media: { connected: false }, books: [], rotation: [], q: '', status: 'all', genre: '', sort: 'author', view: 'grid', limit: 120 };
   const root = document.getElementById('lb');
   const acts = document.getElementById('lb-acts');
   try { const p = JSON.parse(localStorage.getItem('bh-ab-library') || '{}'); if (SORTS[p.sort]) S.sort = p.sort; if (p.view === 'list' || p.view === 'grid') S.view = p.view; } catch (e) { /* ignore */ }
@@ -92,7 +94,8 @@
       el('button', { type: 'button', class: S.view === 'list' ? 'on' : '', title: 'List', onclick: () => { S.view = 'list'; remember(); renderHead(); renderBody(); } }, ico('list')));
     const add = el('button', { class: 'bh-btn primary', type: 'button', title: 'Add one book from its Audible link', onclick: openAddBook }, ico('plus'), 'Add Book');
     const imp = el('button', { class: 'bh-btn', type: 'button', title: 'Bring in new books from an OpenAudible export', onclick: openImport }, ico('file-import'), 'Import');
-    acts.append(add, imp, search, sort, view);
+    const scan = S.media.connected && S.media.is_admin ? el('button', { class: 'bh-btn', type: 'button', title: 'Find files in your Dropbox Library folder that no book links to', onclick: openScan }, ico('folder-search'), 'Scan Dropbox') : null;
+    acts.append(add, scan, imp, search, sort, view);
   }
 
   function renderStats() {
@@ -197,10 +200,11 @@
             b.narrators ? el('div', { class: 'ty-sub lb-wrap' }, 'Narrated by ' + b.narrators) : null,
             stars,
             el('div', { class: 'lb-detail-acts' },
-              b.dropbox_path ? el('a', { class: 'bh-btn sm primary', href: dbxUrl(b.dropbox_path), target: '_blank', rel: 'noopener', title: b.dropbox_path }, ico('brand-dropbox'), 'Open in Dropbox') : null,
+              b.dropbox_path ? el('a', { class: 'bh-btn sm' + (S.media.connected ? '' : ' primary'), href: dbxUrl(b.dropbox_path), target: '_blank', rel: 'noopener', title: b.dropbox_path }, ico('brand-dropbox'), 'Open in Dropbox') : null,
               b.pdf_path ? el('a', { class: 'bh-btn sm', href: dbxUrl(b.pdf_path), target: '_blank', rel: 'noopener', title: b.pdf_path }, ico('file-type-pdf'), 'Companion PDF') : null,
               b.asin ? el('a', { class: 'bh-btn sm', href: 'https://www.audible.com/pd/' + b.asin, target: '_blank', rel: 'noopener' }, ico('external-link'), 'Audible') : null,
               twice))),
+        S.media.connected ? mediaButtons(b) : null,
         summary,
         el('dl', { class: 'bh-kv lb-kv' },
           kv('Series', seriesText(b)), kv('Length', b.duration_seconds != null ? hm(b.duration_seconds) : ''),
@@ -255,7 +259,9 @@
   }
 
   /* ---------- adding books: Add Book (one Audible link) and Import (OpenAudible export) ---------- */
-  const BOOKS_DIR = '/_Media/Audiobooks/Audible_m4b/books/';
+  const BOOKS_DEFAULT = '/_Media/Audiobooks/Audible_m4b/books/';
+  const booksDir = () => ((S.media.settings && S.media.settings.library_folder) ? S.media.settings.library_folder.replace(/\/?$/, '/') : BOOKS_DEFAULT);
+  const stem = (n) => String(n || '').replace(/\.[^.]+$/, '');
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
   const baseName = (p) => String(p || '').split(/[\\/]/).pop().trim();
   const blank = (v) => v == null || v === '';
@@ -275,14 +281,15 @@
     if (!f) return { m4b_file: null, mp3_file: null, dropbox_path: null };
     if (!/\.(m4b|mp3|m4a|aax)$/i.test(f)) f += '.m4b';
     const mp3 = /\.mp3$/i.test(f);
-    return { m4b_file: mp3 ? null : f, mp3_file: mp3 ? f : null, dropbox_path: BOOKS_DIR + f };
+    return { m4b_file: mp3 ? null : f, mp3_file: mp3 ? f : null, dropbox_path: booksDir() + f };
   }
   function insertBooks(rows) {
     return BH.sb.from('audiobooks').insert(rows).select(LIST_COLS);
   }
 
   /* ---- Add Book: paste an Audible link, details fill in from the audiobooks edge function ---- */
-  function openAddBook() {
+  function openAddBook(preset) {
+    if (!preset || preset instanceof Event) preset = null;
     let book = null;
     const input = el('input', { type: 'text', placeholder: 'Paste an Audible link or ASIN (e.g. B0FXY6DVJS)' });
     const go = el('button', { class: 'bh-btn primary', type: 'button' }, ico('search'), 'Look up');
@@ -314,7 +321,7 @@
       const field = (label, node) => el('label', { class: 'bh-field' }, el('span', null, label), node);
       f.status = el('select', null, STATUS.map((s) => el('option', { value: s.id, selected: s.id === 'Unread' }, s.label)));
       const check = el('a', { class: 'bh-btn sm', target: '_blank', rel: 'noopener', title: 'Opens the file in Dropbox if the name is right' }, ico('brand-dropbox'), 'Check in Dropbox');
-      inp('file', b.file_guess, { oninput: () => sync() });
+      inp('file', preset ? preset.file : b.file_guess, { oninput: () => sync() });
       const sync = () => { const p = fileFields(f.file.value).dropbox_path; if (p) check.href = dbxUrl(p); else check.removeAttribute('href'); };
       sync();
       const facts = [b.duration_seconds ? hm(b.duration_seconds) : '', b.release_date ? 'Released ' + fmtDate(b.release_date) : '', genreTop(b.genre), b.publisher].filter(Boolean).join(' · ');
@@ -327,7 +334,7 @@
         el('div', { class: 'bh-grid2' }, field('Author', inp('authors', b.authors)), field('Narrator', inp('narrators', b.narrators))),
         el('div', { class: 'bh-grid2' }, field('Series', inp('series_name', b.series_name)), field('Book # in series', inp('series_seq', b.series_seq))),
         el('div', { class: 'bh-grid2' }, field('Purchased', inp('purchase_date', today(), { type: 'date' })), field('Status', f.status)),
-        field('Dropbox file name (in ' + BOOKS_DIR.replace(/\/$/, '') + ')', f.file),
+        field('Dropbox file name (in ' + booksDir().replace(/\/$/, '') + ')', f.file),
         el('div', { class: 'lb-add-check' }, check, el('span', { class: 'ty-sub' }, 'Make sure the name matches before you save.')));
     }
     async function save(close) {
@@ -342,6 +349,7 @@
         duration_seconds: book.duration_seconds, rating: book.rating, language: book.language, abridged: book.abridged,
         cover_url: book.cover_url, summary: book.summary, read_status: f.status.value,
       }, fileFields(f.file.value));
+      if (preset && f.file.value.trim() === preset.file) { row.dropbox_path = preset.path; row.file_size = preset.size || null; }
       const { data, error } = await insertBooks([row]);
       if (error) { err.textContent = error.message; return; }
       S.books.push(data[0]);
@@ -351,7 +359,8 @@
     go.addEventListener('click', lookup);
     const m = modal({
       title: 'Add Book', wide: true,
-      body: [el('div', { class: 'lb-lookup' }, input, go), out, err],
+      body: [preset ? el('div', { class: 'bh-info lb-add-for' }, ico('file-music'), el('div', null, 'For ', el('b', null, preset.file), '. Paste the book\'s Audible link to fill in its details.')) : null,
+        el('div', { class: 'lb-lookup' }, input, go), out, err],
       buttons: [{ label: 'Close' }, { label: 'Add to Library', primary: true, onClick: save }],
     });
   }
@@ -564,6 +573,102 @@
     });
   }
 
+  /* ---------- Media Dropbox: play / download links and Scan Dropbox ---------- */
+  const callMedia = (action, payload) => BH.callFunction('audiobooks', Object.assign({ action }, payload));
+  /* Play + download buttons in a book's details window (short-lived links from the server) */
+  function mediaButtons(b) {
+    const wrap = el('div', { class: 'lb-media' }, el('span', { class: 'ty-sub' }, ico('loader-2'), ' Getting play links…'));
+    callMedia('media_links', { id: b.id }).then((r) => {
+      wrap.innerHTML = '';
+      if (!r.play && !r.mp3) { wrap.append(el('span', { class: 'ty-sub' }, 'No audio file found in Dropbox for this book.')); return; }
+      const player = el('div', { class: 'lb-player bh-gone' });
+      const acts = el('div', { class: 'lb-media-acts' });
+      if (r.play) {
+        acts.append(el('button', { class: 'bh-btn sm primary', type: 'button', onclick: (e) => {
+          if (!player.firstChild) player.append(el('audio', { controls: true, autoplay: true, preload: 'none', src: r.play.url }));
+          player.classList.remove('bh-gone'); e.currentTarget.remove();
+        } }, ico('player-play'), 'Play'));
+        acts.append(el('a', { class: 'bh-btn sm', href: r.play.url, rel: 'noopener', title: r.play.name }, ico('download'), 'Download' + (r.play.size ? ' (' + fileSize(r.play.size) + ')' : '')));
+      }
+      if (r.mp3 && (!r.play || r.mp3.url !== r.play.url)) acts.append(el('a', { class: 'bh-btn sm', href: r.mp3.url, rel: 'noopener', title: r.mp3.name }, ico('file-music'), 'MP3' + (r.mp3.size ? ' (' + fileSize(r.mp3.size) + ')' : '')));
+      wrap.append(acts, player);
+    }, (e) => { wrap.innerHTML = ''; wrap.append(el('span', { class: 'ty-sub' }, 'Play links unavailable: ' + (e.message || e))); });
+    return wrap;
+  }
+
+  /* Scan Dropbox: files in the Library folder that no book links to */
+  async function openScan() {
+    const out = el('div', { class: 'lb-scan' }, el('div', { class: 'ty-sub' }, 'Scanning your Library folder in Dropbox…'));
+    const err = el('div', { class: 'bh-err' });
+    const picks = new Map();   // file path -> plan entry
+    const m = modal({ title: 'Scan Dropbox', wide: true, body: [out, err],
+      buttons: [{ label: 'Close' }, { label: 'Add Selected', primary: true, onClick: apply }] });
+    const btn = m.overlay.querySelector('.bh-mfoot .primary');
+    btn.disabled = true;
+    let res;
+    try { res = await callMedia('media_scan'); } catch (e) { out.innerHTML = ''; err.textContent = e.message || String(e); return; }
+    out.innerHTML = '';
+    const byKey = new Map(), byAsin = new Map();
+    S.books.forEach((b) => { if (b.audible_key) byKey.set(b.audible_key.toLowerCase(), b); if (b.asin) byAsin.set(String(b.asin).toUpperCase(), b); });
+    out.append(el('div', { class: 'ty-sub lb-wrap' }, res.total + ' audio files in ', el('code', null, res.folder), ' · ' + res.linked + ' already in your Library · ',
+      el('b', null, res.items.length + ' not linked')));
+    if (!res.items.length) { out.append(el('div', { class: 'bh-info lb-scan-done' }, ico('circle-check'), el('div', null, 'Every file in the folder is linked to a book. Nothing to add.'))); return; }
+    const list = el('div', { class: 'lb-scan-list' });
+    const count = () => { const n = Array.from(picks.values()).filter((p) => p.on).length; btn.disabled = !n; btn.textContent = n ? 'Add Selected (' + n + ')' : 'Add Selected'; };
+    res.items.sort((a, b) => cmp(a.name, b.name)).forEach((it) => {
+      const bk = it.book;
+      const have = bk && ((bk.key && byKey.get(String(bk.key).toLowerCase())) || (bk.asin && byAsin.get(String(bk.asin).toUpperCase())));
+      const p = { it, have, on: !!bk };
+      const tag = !bk ? el('span', { class: 'lb-scan-tag none' }, 'No details')
+        : have ? el('span', { class: 'lb-scan-tag link' }, 'Link to existing') : el('span', { class: 'lb-scan-tag new' }, 'New');
+      const box = el('input', { type: 'checkbox', checked: p.on, disabled: !bk, onchange: (e) => { p.on = e.target.checked; count(); } });
+      const what = !bk
+        ? el('div', { class: 'ty-sub lb-wrap' }, 'Not in OpenAudible\'s books.json. ',
+          el('button', { type: 'button', class: 'bh-link', onclick: () => { m.close(); openAddBook({ file: it.name, path: it.path, size: it.size }); } }, 'Add it with an Audible link'),
+          ' · ', el('a', { class: 'bh-link', href: 'https://www.audible.com/search?keywords=' + encodeURIComponent(short(stem(it.name))), target: '_blank', rel: 'noopener' }, 'search Audible'))
+        : have ? el('div', { class: 'ty-sub lb-wrap' }, 'Same book as "' + short(have.title) + '" - its Dropbox link will point to this file.')
+          : el('div', { class: 'ty-sub lb-wrap' }, [bk.authors, bk.series_name ? bk.series_name + (bk.series_seq ? ' #' + bk.series_seq : '') : '', bk.duration_seconds ? hm(bk.duration_seconds) : '', bk.finished ? 'Finished' : ''].filter(Boolean).join(' · '));
+      list.append(el('label', { class: 'lb-scan-row' + (bk ? '' : ' off') }, box,
+        bk && bk.cover_url ? el('img', { class: 'ty-cover', src: bk.cover_url, alt: '', loading: 'lazy' }) : el('div', { class: 'ty-cover none' }, ico('headphones')),
+        el('div', { class: 'lb-scan-main' },
+          el('div', { class: 'ty-name' }, bk ? short(bk.title) : stem(it.name), ' ', tag),
+          what,
+          el('div', { class: 'ty-sub' }, it.name + (it.size ? ' · ' + fileSize(it.size) : '')))));
+      picks.set(it.path, p);
+    });
+    out.append(list);
+    count();
+
+    async function apply(close) {
+      err.textContent = '';
+      const chosen = Array.from(picks.values()).filter((p) => p.on && p.it.book);
+      if (!chosen.length) return;
+      btn.disabled = true; btn.textContent = 'Adding…';
+      try {
+        const adds = [], links = [];
+        chosen.forEach(({ it, have }) => {
+          const ff = fileFields(it.name); ff.dropbox_path = it.path;
+          if (have) { links.push({ id: have.id, patch: Object.assign(ff, { file_size: it.size || null }) }); return; }
+          const bk = it.book;
+          adds.push(Object.assign({
+            owner_id: S.user.id, audible_key: bk.key || (bk.asin ? 'ASIN_' + bk.asin : 'FILE_' + stem(it.name)), asin: bk.asin,
+            title: bk.title, authors: bk.authors, narrators: bk.narrators, series_name: bk.series_name, series_seq: bk.series_seq,
+            genre: bk.genre, publisher: bk.publisher, release_date: bk.release_date, purchase_date: bk.purchase_date,
+            duration_seconds: bk.duration_seconds, rating: bk.rating, rating_count: bk.rating_count, abridged: bk.abridged,
+            language: bk.language, description: bk.description, summary: bk.summary, cover_url: bk.cover_url,
+            read_status: bk.finished ? 'Finished' : 'Unread', file_size: it.size || null,
+          }, ff));
+        });
+        if (adds.length) { const { error } = await insertBooks(adds); if (error) throw error; }
+        for (const l of links) { const { error } = await BH.sb.from('audiobooks').update(l.patch).eq('id', l.id); if (error) throw error; }
+        await load();
+        close();
+        toast((adds.length ? adds.length + ' added' : '') + (adds.length && links.length ? ', ' : '') + (links.length ? links.length + ' linked' : ''), 'ok');
+        renderStats(); renderBody();
+      } catch (e) { err.textContent = e.message || String(e); btn.disabled = false; count(); }
+    }
+  }
+
   /* ---------- boot ---------- */
   (async function () {
     try {
@@ -572,6 +677,7 @@
       S.user = user;
       if (BH.track) BH.track('audiobooks-library');
       await load();
+      try { S.media = await BH.callFunction('audiobooks', { action: 'media_status' }); } catch (e) { /* no Media connection - Dropbox links only */ }
       renderHead();
       root.innerHTML = '';
       root.append(el('div', { id: 'lb-stats' }), el('div', { id: 'lb-body' }));

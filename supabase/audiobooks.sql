@@ -114,3 +114,20 @@ drop policy if exists audiobook_listens_all on public.audiobook_listens;
 create policy audiobook_listens_all on public.audiobook_listens for all to authenticated
   using (exists (select 1 from public.audiobook_rotation r where r.id = rotation_id and (select private.ab_can(r.owner_id))))
   with check (exists (select 1 from public.audiobook_rotation r where r.id = rotation_id and (select private.ab_can(r.owner_id))));
+
+/* ---------- Shared Library (added Nov 2, 2026; applied to the bellhive99 project) ----------
+   AUDIOBOOKS > Library is shared: anyone active whose ADMIN > Permissions has Library on can
+   READ every book, and so play / download it through the audiobooks edge function.
+   Changing books (status, notes, adding) stays with the owner and admins (audiobooks_all).
+   Needs permissions.sql (private.can_see) first. */
+create or replace function private.ab_can_read()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.profiles p where p.id = auth.uid() and p.active)
+     and private.can_see('audiobooks_library');
+$$;
+revoke all on function private.ab_can_read() from public, anon;
+grant execute on function private.ab_can_read() to authenticated;
+
+drop policy if exists audiobooks_read_shared on public.audiobooks;
+create policy audiobooks_read_shared on public.audiobooks for select to authenticated
+  using ((select private.ab_can_read()));

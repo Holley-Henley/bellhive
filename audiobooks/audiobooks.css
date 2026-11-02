@@ -180,3 +180,27 @@ a.bh-ib, a.bh-btn { text-decoration: none; }
 .lb-imp-h { font-size: 11px; font-weight: 600; color: var(--bh-text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
 .lb-imp-note { margin-top: 4px; }
 .bh-btn:disabled { opacity: .6; cursor: default; }
+
+/* Play / MP3 (Media Dropbox) */
+.lb-media { margin: 12px 0 0; }
+.lb-media-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.lb-media .ti-loader-2 { display: inline-block; animation: lb-spin 1s linear infinite; }
+@keyframes lb-spin { to { transform: rotate(360deg); } }
+.lb-player { margin-top: 8px; }
+.lb-player audio { width: 100%; }
+.lb-add-for { margin-bottom: 10px; }
+
+/* Scan Dropbox */
+.lb-scan code { font-size: 11px; background: var(--bh-surface2); border: 1px solid var(--bh-border); border-radius: 4px; padding: 0 4px; }
+.lb-scan-done { margin-top: 10px; }
+.lb-scan-list { margin-top: 10px; max-height: 52vh; overflow: auto; border: 1px solid var(--bh-border); border-radius: var(--bh-r); }
+.lb-scan-row { display: grid; grid-template-columns: 18px 38px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--bh-border); cursor: pointer; }
+.lb-scan-row:first-child { border-top: 0; }
+.lb-scan-row.off { cursor: default; background: var(--bh-surface2); }
+.lb-scan-main { min-width: 0; }
+.lb-scan-main .ty-name { white-space: normal; }
+.lb-scan-tag { display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 999px; vertical-align: 1px; }
+.lb-scan-tag.new { background: #e5f5ea; color: #1e7a3c; }
+.lb-scan-tag.link { background: var(--bh-honey-bg); color: #6b4a07; }
+.lb-scan-tag.none { background: var(--bh-surface2); color: var(--bh-text3); border: 1px solid var(--bh-border); }
+.lb-scan button.bh-link { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }

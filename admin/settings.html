@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Chrisware / bellhive99.com - ADMIN > Settings
+     Site-wide settings that need an admin: the read-only Media Dropbox connection
+     (Bellhive99_Media, limited to /_Media) and which folders the Audiobook Library uses.
+     Everything is stored by the audiobooks edge function (supabase/functions/audiobooks). -->
+<title>Settings · bellhive99 admin</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap st-wrap">
+    <div class="bh-page-head">
+      <div><div class="crumb">Admin</div><h1>Settings</h1></div>
+    </div>
+    <div id="st"><div class="bh-empty">Loading settings…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/version.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

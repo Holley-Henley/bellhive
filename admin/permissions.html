@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permissions · bellhive99 admin</title>
+<!-- bellhive99.com - Chrisware -->
+<link rel="stylesheet" href="../auth/auth.css">
+<style>
+  .pm-shell { display: flex; min-height: 440px; padding: 0; overflow: hidden; }
+  .pm-list { width: 220px; flex: none; border-right: 1px solid var(--bh-border); padding: 10px 8px; background: var(--bh-surface2); }
+  .pm-list .lh { font-size: 11px; font-weight: 600; color: var(--bh-text3); text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px 8px; }
+  .pm-user { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: var(--bh-r);
+    cursor: pointer; font: 13px var(--bh-font); color: var(--bh-text2); margin-bottom: 2px; }
+  .pm-user:hover { background: #fff; }
+  .pm-user.on { background: var(--bh-brand); color: #fff; font-weight: 600; }
+  .pm-user .bh-av { width: 26px; height: 26px; font-size: 10px; flex: none; }
+  .pm-user .sub { display: block; font-size: 11px; font-weight: 400; opacity: .7; }
+  .pm-user .dot { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; background: var(--bh-accent); flex: none; }
+  .pm-detail { flex: 1; min-width: 0; padding: 18px 22px; }
+  .pm-who { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .pm-who h2 { font: 700 22px/1.1 var(--bh-display); margin: 0; }
+  .pm-meta { font-size: 12px; color: var(--bh-text3); margin-bottom: 14px; }
+  .pm-info { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--bh-text2); background: var(--bh-honey-bg);
+    border: 1px solid #ecd9a6; border-radius: var(--bh-r); padding: 9px 12px; margin-bottom: 16px; line-height: 1.45; }
+  .pm-sec { margin-bottom: 18px; }
+  .pm-sec-h { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; color: var(--bh-text3); text-transform: uppercase;
+    letter-spacing: .06em; padding-bottom: 5px; margin-bottom: 6px; border-bottom: 1px solid var(--bh-border); }
+  .pm-sec-h .sp { flex: 1; }
+  .pm-sec-h button { border: 0; background: none; color: var(--bh-brand-mid); font: 600 11px var(--bh-font); cursor: pointer; padding: 0; text-transform: none; letter-spacing: 0; }
+  .pm-sec-h button:hover { text-decoration: underline; }
+  .pm-item { display: flex; align-items: center; gap: 9px; padding: 5px 2px; font-size: 13px; cursor: pointer; }
+  .pm-item input { width: 15px; height: 15px; accent-color: var(--bh-brand); margin: 0; }
+  .pm-item .note { color: var(--bh-text3); font-size: 12px; }
+  .pm-item.changed > span:first-of-type::after { content: ' •'; color: var(--bh-accent); font-weight: 700; }
+  .pm-foot { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--bh-border); padding-top: 14px; margin-top: 6px; }
+  .pm-foot .hint { flex: 1; font-size: 11px; color: var(--bh-text3); }
+  @media (max-width: 640px) { .pm-shell { flex-direction: column; } .pm-list { width: auto; border-right: 0; border-bottom: 1px solid var(--bh-border); } }
+</style>
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap">
+    <div class="bh-page-head">
+      <div><div class="crumb">Admin</div><h1>Permissions</h1></div>
+      <div id="pm-actions"></div>
+    </div>
+    <div id="mc"><div class="bh-empty">Loading…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/perms.js"></script>
+  <script src="permissions.js"></script>
+</body>
+</html>

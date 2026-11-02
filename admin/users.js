@@ -25,6 +25,7 @@
     if (!BH.isAdmin()) { mc.replaceChildren(el('div', { class: 'bh-card bh-empty' }, 'Access restricted - admins only.')); return; }
     BH.pageOpen('Admin › Users', 'admin');
     document.getElementById('um-actions').replaceChildren(
+      el('a', { class: 'bh-btn', style: 'text-decoration:none', href: 'permissions.html', title: 'What each person sees in the left menu' }, 'Permissions'), ' ',
       el('button', { class: 'bh-btn primary', type: 'button', onclick: openAdd, html: ICON.plus + ' Add User' }));
     await load();
   }
