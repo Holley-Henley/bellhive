@@ -11,7 +11,7 @@
  * ============================================================ */
 (function () {
   const { el, toast, modal } = BH.ui;
-  const LIST_COLS = 'id, audible_key, asin, title, authors, narrators, series_name, series_seq, genre, publisher, release_date, purchase_date, duration_seconds, rating, rating_count, cover_url, m4b_file, mp3_file, read_status, notes';
+  const LIST_COLS = 'id, audible_key, asin, title, authors, narrators, series_name, series_seq, genre, publisher, release_date, purchase_date, duration_seconds, rating, rating_count, cover_url, m4b_file, mp3_file, read_status, notes, dropbox_path, file_size, pdf_path';
   const STATUS = [
     { id: 'Unread', label: 'Unread', icon: 'book-2' },
     { id: 'Reading', label: 'Listening', icon: 'headphones' },
@@ -42,6 +42,9 @@
   const hrs = (s) => Math.round(s / 3600).toLocaleString('en-US');
   const fmtDate = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
   const genreTop = (g) => (g ? String(g).split(':')[0] : '');
+  /* Dropbox web link for a file in Chris's Dropbox (opens Dropbox's own player / viewer) */
+  const dbxUrl = (path) => 'https://www.dropbox.com/preview' + String(path).split('/').map(encodeURIComponent).join('/');
+  const fileSize = (n) => (n == null ? '' : n >= 1073741824 ? (n / 1073741824).toFixed(2) + ' GB' : Math.round(n / 1048576) + ' MB');
   const ico = (name) => el('i', { class: 'ti ti-' + name, 'aria-hidden': 'true' });
   const statusOf = (b) => STATUS.find((s) => s.id === b.read_status) || null;
   const onList = (b) => S.rotation.some((r) => r.audiobook_id === b.id && r.active);
@@ -163,7 +166,8 @@
       el('div', { class: 'ty-sub' }, b.narrators || ''),
       el('span', { class: 'r ty-len' }, hm(b.duration_seconds)),
       el('span', { class: 'ty-len' }, b.purchase_date ? fmtDate(b.purchase_date) : '—'),
-      el('div', null, statusBadge(b)));
+      el('div', { class: 'lb-row-end' }, statusBadge(b),
+        b.dropbox_path ? el('a', { class: 'bh-ib lb-dbx', href: dbxUrl(b.dropbox_path), target: '_blank', rel: 'noopener', title: 'Open in Dropbox', onclick: (e) => e.stopPropagation() }, ico('brand-dropbox')) : null));
   }
 
   /* ---------- details ---------- */
@@ -189,6 +193,8 @@
             b.narrators ? el('div', { class: 'ty-sub lb-wrap' }, 'Narrated by ' + b.narrators) : null,
             stars,
             el('div', { class: 'lb-detail-acts' },
+              b.dropbox_path ? el('a', { class: 'bh-btn sm primary', href: dbxUrl(b.dropbox_path), target: '_blank', rel: 'noopener', title: b.dropbox_path }, ico('brand-dropbox'), 'Open in Dropbox') : null,
+              b.pdf_path ? el('a', { class: 'bh-btn sm', href: dbxUrl(b.pdf_path), target: '_blank', rel: 'noopener', title: b.pdf_path }, ico('file-type-pdf'), 'Companion PDF') : null,
               b.asin ? el('a', { class: 'bh-btn sm', href: 'https://www.audible.com/pd/' + b.asin, target: '_blank', rel: 'noopener' }, ico('external-link'), 'Audible') : null,
               twice))),
         summary,
@@ -196,7 +202,7 @@
           kv('Series', seriesText(b)), kv('Length', b.duration_seconds != null ? hm(b.duration_seconds) : ''),
           kv('Genre', b.genre ? b.genre.split(':').join(' › ') : ''), kv('Publisher', b.publisher),
           kv('Released', b.release_date ? fmtDate(b.release_date) : ''), kv('Purchased', b.purchase_date ? fmtDate(b.purchase_date) : ''),
-          kv('File', b.m4b_file || b.mp3_file)),
+          kv('File', (b.m4b_file || b.mp3_file) ? (b.m4b_file || b.mp3_file) + (b.file_size ? ' (' + fileSize(b.file_size) + ')' : '') : '')),
         el('div', { class: 'bh-grid2 ty-gap' }, el('label', { class: 'bh-field' }, el('span', null, 'Status'), statusSel), el('span')),
         el('label', { class: 'bh-field' }, el('span', null, 'Notes'), notes), err],
       buttons: [{ label: 'Close' }, { label: 'Save', primary: true, onClick: async (close) => {
