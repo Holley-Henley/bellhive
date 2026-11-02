@@ -8,6 +8,8 @@
  *   audiobook_rotation  read here only to badge books that are on the Twice Yearly list,
  *                       and written when a book is added to that list from here
  * Each person keeps their own library: this page shows the rows owned by whoever is signed in.
+ * New books: Add Book (paste an Audible link; details come from the audiobooks edge function)
+ *            and Import (an OpenAudible CSV/Excel export; only fills empty fields on existing books).
  * ============================================================ */
 (function () {
   const { el, toast, modal } = BH.ui;
@@ -88,7 +90,9 @@
     const view = el('div', { class: 'lb-toggle' },
       el('button', { type: 'button', class: S.view === 'grid' ? 'on' : '', title: 'Covers', onclick: () => { S.view = 'grid'; remember(); renderHead(); renderBody(); } }, ico('layout-grid')),
       el('button', { type: 'button', class: S.view === 'list' ? 'on' : '', title: 'List', onclick: () => { S.view = 'list'; remember(); renderHead(); renderBody(); } }, ico('list')));
-    acts.append(search, sort, view);
+    const add = el('button', { class: 'bh-btn primary', type: 'button', title: 'Add one book from its Audible link', onclick: openAddBook }, ico('plus'), 'Add Book');
+    const imp = el('button', { class: 'bh-btn', type: 'button', title: 'Bring in new books from an OpenAudible export', onclick: openImport }, ico('file-import'), 'Import');
+    acts.append(add, imp, search, sort, view);
   }
 
   function renderStats() {
@@ -248,6 +252,316 @@
     try { await load(); } catch (e) { return fail(e); }
     btn.replaceWith(el('a', { class: 'bh-btn sm', href: 'twice-yearly.html' }, ico('repeat'), 'On Twice Yearly'));
     renderBody();
+  }
+
+  /* ---------- adding books: Add Book (one Audible link) and Import (OpenAudible export) ---------- */
+  const BOOKS_DIR = '/_Media/Audiobooks/Audible_m4b/books/';
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const baseName = (p) => String(p || '').split(/[\\/]/).pop().trim();
+  const blank = (v) => v == null || v === '';
+  /* "https://www.audible.com/pd/Some-Title-Audiobook/B0BLACKCRW?ref=..." or a bare ASIN -> "B0BLACKCRW" */
+  function asinFrom(text) {
+    const s = String(text || '').trim();
+    if (/^[A-Z0-9]{10}$/i.test(s)) return s.toUpperCase();
+    let path = s, q = null;
+    try { const u = new URL(s); path = u.pathname; q = u.searchParams.get('asin'); } catch (e) { /* not a URL */ }
+    if (q && /^[A-Z0-9]{10}$/i.test(q)) return q.toUpperCase();
+    const segs = path.split('/').filter((p) => /^[A-Z0-9]{10}$/i.test(p) && /\d/.test(p));
+    return segs.length ? segs[segs.length - 1].toUpperCase() : null;
+  }
+  /* file name in Dropbox -> the m4b/mp3 columns + the Dropbox path the page links to */
+  function fileFields(name) {
+    let f = baseName(name);
+    if (!f) return { m4b_file: null, mp3_file: null, dropbox_path: null };
+    if (!/\.(m4b|mp3|m4a|aax)$/i.test(f)) f += '.m4b';
+    const mp3 = /\.mp3$/i.test(f);
+    return { m4b_file: mp3 ? null : f, mp3_file: mp3 ? f : null, dropbox_path: BOOKS_DIR + f };
+  }
+  function insertBooks(rows) {
+    return BH.sb.from('audiobooks').insert(rows).select(LIST_COLS);
+  }
+
+  /* ---- Add Book: paste an Audible link, details fill in from the audiobooks edge function ---- */
+  function openAddBook() {
+    let book = null;
+    const input = el('input', { type: 'text', placeholder: 'Paste an Audible link or ASIN (e.g. B0FXY6DVJS)' });
+    const go = el('button', { class: 'bh-btn primary', type: 'button' }, ico('search'), 'Look up');
+    const out = el('div', { class: 'lb-add-out' });
+    const err = el('div', { class: 'bh-err' });
+    const f = {};
+    async function lookup() {
+      err.textContent = ''; out.innerHTML = ''; book = null;
+      const asin = asinFrom(input.value);
+      if (!asin) { err.textContent = 'Paste the book\'s Audible page link, or its 10-character ASIN.'; return; }
+      const have = S.books.find((b) => String(b.asin || '').toUpperCase() === asin);
+      if (have) {
+        out.append(el('div', { class: 'bh-info' }, ico('info-circle'),
+          el('div', null, 'Already in your Library: ', el('b', null, short(have.title)), '. ',
+            el('button', { type: 'button', class: 'bh-link', onclick: () => { m.close(); details(have); } }, 'Open it'))));
+        return;
+      }
+      go.disabled = true; out.append(el('div', { class: 'ty-sub' }, 'Looking up ' + asin + '…'));
+      try {
+        const res = await BH.callFunction('audiobooks', { action: 'lookup', asin });
+        book = res.book;
+      } catch (e) { out.innerHTML = ''; err.textContent = e.message || String(e); return; }
+      finally { go.disabled = false; }
+      out.innerHTML = '';
+      out.append(addForm(book));
+    }
+    function addForm(b) {
+      const inp = (k, v, attrs) => (f[k] = el('input', Object.assign({ type: 'text', value: v == null ? '' : v }, attrs || {})));
+      const field = (label, node) => el('label', { class: 'bh-field' }, el('span', null, label), node);
+      f.status = el('select', null, STATUS.map((s) => el('option', { value: s.id, selected: s.id === 'Unread' }, s.label)));
+      const check = el('a', { class: 'bh-btn sm', target: '_blank', rel: 'noopener', title: 'Opens the file in Dropbox if the name is right' }, ico('brand-dropbox'), 'Check in Dropbox');
+      inp('file', b.file_guess, { oninput: () => sync() });
+      const sync = () => { const p = fileFields(f.file.value).dropbox_path; if (p) check.href = dbxUrl(p); else check.removeAttribute('href'); };
+      sync();
+      const facts = [b.duration_seconds ? hm(b.duration_seconds) : '', b.release_date ? 'Released ' + fmtDate(b.release_date) : '', genreTop(b.genre), b.publisher].filter(Boolean).join(' · ');
+      return el('div', null,
+        el('div', { class: 'lb-detail lb-add-head' }, cover(b, 'lb-detail-cover'),
+          el('div', null, el('div', { class: 'ty-info-title' }, b.title), el('div', { class: 'lb-by' }, 'by ', el('b', null, b.authors || 'Unknown')),
+            b.narrators ? el('div', { class: 'ty-sub lb-wrap' }, 'Narrated by ' + b.narrators) : null,
+            el('div', { class: 'ty-sub lb-wrap' }, facts))),
+        field('Title', inp('title', b.title)),
+        el('div', { class: 'bh-grid2' }, field('Author', inp('authors', b.authors)), field('Narrator', inp('narrators', b.narrators))),
+        el('div', { class: 'bh-grid2' }, field('Series', inp('series_name', b.series_name)), field('Book # in series', inp('series_seq', b.series_seq))),
+        el('div', { class: 'bh-grid2' }, field('Purchased', inp('purchase_date', today(), { type: 'date' })), field('Status', f.status)),
+        field('Dropbox file name (in ' + BOOKS_DIR.replace(/\/$/, '') + ')', f.file),
+        el('div', { class: 'lb-add-check' }, check, el('span', { class: 'ty-sub' }, 'Make sure the name matches before you save.')));
+    }
+    async function save(close) {
+      err.textContent = '';
+      if (!book) { err.textContent = 'Look up a book first.'; return; }
+      const v = (k) => f[k].value.trim() || null;
+      const row = Object.assign({
+        owner_id: S.user.id, audible_key: 'ASIN_' + book.asin, asin: book.asin,
+        title: v('title') || book.title, authors: v('authors'), narrators: v('narrators'),
+        series_name: v('series_name'), series_seq: v('series_seq'),
+        genre: book.genre, publisher: book.publisher, release_date: book.release_date, purchase_date: v('purchase_date'),
+        duration_seconds: book.duration_seconds, rating: book.rating, language: book.language, abridged: book.abridged,
+        cover_url: book.cover_url, summary: book.summary, read_status: f.status.value,
+      }, fileFields(f.file.value));
+      const { data, error } = await insertBooks([row]);
+      if (error) { err.textContent = error.message; return; }
+      S.books.push(data[0]);
+      close(); toast('Added ' + short(row.title), 'ok'); renderStats(); renderBody();
+    }
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') lookup(); });
+    go.addEventListener('click', lookup);
+    const m = modal({
+      title: 'Add Book', wide: true,
+      body: [el('div', { class: 'lb-lookup' }, input, go), out, err],
+      buttons: [{ label: 'Close' }, { label: 'Add to Library', primary: true, onClick: save }],
+    });
+  }
+
+  /* ---- Import: an OpenAudible export (CSV / Excel) or the Twice-Yearly workbook ---- */
+  const COLS = {
+    key: ['key', 'audiblekey', 'bookkey', 'productid'],
+    asin: ['asin'],
+    title: ['title', 'fulltitle', 'booktitle'],
+    authors: ['author', 'authors'],
+    narrators: ['narratedby', 'narrator', 'narrators'],
+    series_name: ['seriesname', 'series'],
+    series_seq: ['seriessequence', 'seriesseq', 'seriesnumber', 'seriesnum', '#'],
+    genre: ['genre', 'genres'],
+    publisher: ['publisher'],
+    release_date: ['releasedate', 'released', 'releasedon'],
+    purchase_date: ['purchasedate', 'purchased', 'datepurchased', 'dateadded'],
+    duration: ['duration', 'length', 'runtime'],
+    rating: ['averating', 'averagerating', 'avgrating', 'rating'],
+    rating_count: ['ratingcount', 'ratings', 'numratings', 'numberofratings'],
+    abridged: ['abridged'],
+    language: ['language'],
+    summary: ['summary'],
+    description: ['description'],
+    cover_url: ['imageurl', 'coverurl', 'cover', 'image'],
+    file: ['filename', 'file', 'm4bfile', 'm4b', 'filepath'],
+    finished: ['readstatus', 'finished', 'isfinished', 'listeningstatus', 'status'],
+  };
+  const norm = (h) => String(h == null ? '' : h).toLowerCase().replace(/[^a-z0-9#]/g, '');
+  function loadSheetJS() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((ok, bad) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = () => ok(window.XLSX);
+      s.onerror = () => bad(new Error('Could not load the spreadsheet reader. Check your connection and try again.'));
+      document.head.appendChild(s);
+    });
+  }
+  /* find the header row (first 15 rows) that has a title plus a key or ASIN column */
+  function findTable(rows) {
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const hs = (rows[i] || []).map(norm);
+      const idx = {};
+      Object.keys(COLS).forEach((k) => { for (const a of COLS[k]) { const j = hs.indexOf(a); if (j >= 0) { idx[k] = j; break; } } });
+      if (idx.title != null && (idx.key != null || idx.asin != null)) return { at: i, idx, names: rows[i] };
+    }
+    return null;
+  }
+  function isoDate(v) {
+    if (blank(v)) return null;
+    if (v instanceof Date && !isNaN(v)) { const d = new Date(v.getTime() + 43200000); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + '-' + pad(m[2]) + '-' + pad(m[3]);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (m) return (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + pad(m[1]) + '-' + pad(m[2]);
+    const t = Date.parse(s);
+    return isNaN(t) ? null : isoDate(new Date(t));
+  }
+  function seconds(v) {
+    if (blank(v)) return null;
+    if (v instanceof Date && !isNaN(v)) return Math.round((v.getTime() - Date.UTC(1899, 11, 30)) / 1000);
+    if (typeof v === 'number') return v < 5 ? Math.round(v * 86400) : v < 5000 ? Math.round(v * 60) : Math.round(v);
+    const s = String(v).trim();
+    if (/^\d+(:\d{1,2}){1,2}$/.test(s)) { const p = s.split(':').map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 3600 + p[1] * 60; }
+    const h = s.match(/(\d+)\s*h/i), mi = s.match(/(\d+)\s*m/i);
+    if (h || mi) return (h ? +h[1] * 3600 : 0) + (mi ? +mi[1] * 60 : 0);
+    const n = parseFloat(s); return isNaN(n) ? null : seconds(n);
+  }
+  const numOr = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? null : n; };
+  const text = (v) => (blank(v) ? null : String(v instanceof Date ? isoDate(v) : v).trim() || null);
+  function rowToBook(r, idx) {
+    const g = (k) => (idx[k] == null ? null : r[idx[k]]);
+    const cov = text(g('cover_url'));
+    const fin = text(g('finished'));
+    const rating = numOr(g('rating')), count = numOr(g('rating_count'));
+    return {
+      key: text(g('key')), asin: text(g('asin')) ? text(g('asin')).toUpperCase() : null,
+      title: text(g('title')), authors: text(g('authors')), narrators: text(g('narrators')),
+      series_name: text(g('series_name')), series_seq: text(g('series_seq')), genre: text(g('genre')), publisher: text(g('publisher')),
+      release_date: isoDate(g('release_date')), purchase_date: isoDate(g('purchase_date')), duration_seconds: seconds(g('duration')),
+      rating: rating != null && rating > 0 && rating <= 5 ? Math.round(rating * 100) / 100 : null,
+      rating_count: count != null ? Math.round(count) : null,
+      abridged: blank(g('abridged')) ? null : /^(true|yes|y|1|abridged)$/i.test(String(g('abridged')).trim()),
+      language: text(g('language')), summary: text(g('summary')), description: text(g('description')),
+      cover_url: cov && /^https?:\/\//i.test(cov) ? cov : null,
+      file: text(g('file')),
+      finished: !!fin && /^(finished|true|yes|y|1|read|complete|completed|done)$/i.test(fin),
+    };
+  }
+  const FILL = ['asin', 'title', 'authors', 'narrators', 'series_name', 'series_seq', 'genre', 'publisher', 'release_date', 'purchase_date', 'duration_seconds', 'cover_url'];
+
+  /* compare the file with the Library: what is new, what gets filled in, what is left alone */
+  async function planImport(rows, idx) {
+    const byKey = new Map(), byAsin = new Map();
+    S.books.forEach((b) => { if (b.audible_key) byKey.set(b.audible_key.toLowerCase(), b); if (b.asin) byAsin.set(String(b.asin).toUpperCase(), b); });
+    const { data: noText, error } = await BH.sb.from('audiobooks').select('id').eq('owner_id', S.user.id).is('summary', null).is('description', null);
+    if (error) throw error;
+    const needsText = new Set((noText || []).map((r) => r.id));
+    const plan = { add: [], update: [], ratings: 0, same: 0, skipped: 0 };
+    const seen = new Set();
+    rows.forEach((r) => {
+      const x = rowToBook(r, idx);
+      if (!x.title || (!x.key && !x.asin)) { if (r.some((c) => !blank(c))) plan.skipped++; return; }
+      const id = (x.key || '').toLowerCase() + '|' + (x.asin || '');
+      if (seen.has(id)) return; seen.add(id);
+      const have = (x.key && byKey.get(x.key.toLowerCase())) || (x.asin && byAsin.get(x.asin));
+      if (!have) {
+        const ff = fileFields(x.file);
+        plan.add.push(Object.assign({
+          owner_id: S.user.id, audible_key: x.key || 'ASIN_' + x.asin, asin: x.asin, title: x.title, authors: x.authors, narrators: x.narrators,
+          series_name: x.series_name, series_seq: x.series_seq, genre: x.genre, publisher: x.publisher,
+          release_date: x.release_date, purchase_date: x.purchase_date, duration_seconds: x.duration_seconds,
+          rating: x.rating, rating_count: x.rating_count, abridged: x.abridged, language: x.language,
+          summary: x.summary, description: x.description, cover_url: x.cover_url,
+          read_status: x.finished ? 'Finished' : 'Unread',
+        }, ff));
+        return;
+      }
+      /* existing book: only fill what is empty, never undo edits made on the site */
+      const patch = {}, why = [];
+      FILL.forEach((k) => { if (blank(have[k]) && !blank(x[k])) patch[k] = x[k]; });
+      if (x.key && /^ASIN_/.test(have.audible_key || '')) patch.audible_key = x.key;
+      if (needsText.has(have.id)) { if (x.summary) patch.summary = x.summary; if (x.description) patch.description = x.description; }
+      if (!have.m4b_file && !have.mp3_file && x.file) { const ff = fileFields(x.file); patch.m4b_file = ff.m4b_file; patch.mp3_file = ff.mp3_file; }
+      if (!have.dropbox_path) { const p = fileFields(patch.m4b_file || patch.mp3_file || have.m4b_file || have.mp3_file).dropbox_path; if (p) patch.dropbox_path = p; }
+      if (Object.keys(patch).length) why.push('details filled in');
+      if (x.finished && have.read_status !== 'Finished') { patch.read_status = 'Finished'; why.push('marked Finished'); }
+      let rated = false;
+      if (x.rating != null && Number(have.rating) !== x.rating) { patch.rating = x.rating; rated = true; }
+      if (x.rating_count != null && have.rating_count !== x.rating_count) { patch.rating_count = x.rating_count; rated = true; }
+      if (why.length) plan.update.push({ book: have, patch, why });
+      else if (rated) { plan.ratings++; plan.update.push({ book: have, patch, why: ['rating'] }); }
+      else plan.same++;
+    });
+    return plan;
+  }
+
+  function openImport() {
+    let plan = null;
+    const pick = el('input', { type: 'file', accept: '.csv,.xlsx,.xlsm,.xls,.tsv' });
+    const out = el('div', { class: 'lb-imp-out' });
+    const err = el('div', { class: 'bh-err' });
+    pick.addEventListener('change', async () => {
+      err.textContent = ''; out.innerHTML = ''; plan = null;
+      const file = pick.files[0];
+      if (!file) return;
+      out.append(el('div', { class: 'ty-sub' }, 'Reading ' + file.name + '…'));
+      try {
+        const X = await loadSheetJS();
+        const wb = X.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+        const names = wb.SheetNames.slice().sort((a, b) => (b.toLowerCase() === 'books') - (a.toLowerCase() === 'books'));
+        let table = null, rows = null, sheet = null;
+        for (const n of names) {
+          const r = X.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null });
+          const t = findTable(r);
+          if (t) { table = t; rows = r; sheet = n; break; }
+        }
+        if (!table) throw new Error('Could not find a list of books in ' + file.name + '. It needs a Title column and a Key or ASIN column.');
+        plan = await planImport(rows.slice(table.at + 1), table.idx);
+        out.innerHTML = '';
+        out.append(planView(plan, file.name, wb.SheetNames.length > 1 ? sheet : null));
+      } catch (e) { out.innerHTML = ''; err.textContent = e.message || String(e); }
+    });
+    function planView(p, fname, sheet) {
+      const filled = p.update.filter((u) => u.why[0] !== 'rating');
+      const finished = filled.filter((u) => u.why.includes('marked Finished')).length;
+      const line = (n, label) => el('li', null, el('b', null, String(n)), ' ' + label);
+      return el('div', null,
+        el('div', { class: 'ty-sub' }, 'From ' + fname + (sheet ? ' (sheet "' + sheet + '")' : '') + ':'),
+        el('ul', { class: 'lb-imp-sum' },
+          line(p.add.length, p.add.length === 1 ? 'new book to add' : 'new books to add'),
+          line(filled.length, 'existing books get empty details filled in' + (finished ? ' (' + finished + ' marked Finished)' : '')),
+          line(p.ratings, 'just get a fresh Audible rating'),
+          line(p.same, 'already up to date'),
+          p.skipped ? line(p.skipped, (p.skipped === 1 ? 'row' : 'rows') + ' skipped (no title, key or ASIN)') : null),
+        p.add.length ? el('div', { class: 'lb-imp-new' }, el('div', { class: 'lb-imp-h' }, 'New books'),
+          p.add.slice(0, 40).map((b) => el('div', { class: 'ty-sub' }, short(b.title) + (b.authors ? ' · ' + b.authors.split(',')[0] : ''))),
+          p.add.length > 40 ? el('div', { class: 'ty-sub' }, '…and ' + (p.add.length - 40) + ' more') : null) : null,
+        el('div', { class: 'bh-info lb-imp-note' }, ico('shield-check'),
+          el('div', null, 'Statuses, notes, titles you edited, Dropbox links and your Twice Yearly list are never changed by an import.')));
+    }
+    async function apply(close) {
+      err.textContent = '';
+      if (!plan) { err.textContent = 'Choose a file first.'; return; }
+      if (!plan.add.length && !plan.update.length) { close(); toast('Nothing to import - your Library is up to date', 'ok'); return; }
+      const btn = m.overlay.querySelector('.bh-mfoot .primary');
+      btn.disabled = true; btn.textContent = 'Importing…';
+      try {
+        for (let i = 0; i < plan.add.length; i += 100) {
+          const { error } = await insertBooks(plan.add.slice(i, i + 100));
+          if (error) throw error;
+        }
+        for (let i = 0; i < plan.update.length; i += 10) {
+          const res = await Promise.all(plan.update.slice(i, i + 10).map((u) => BH.sb.from('audiobooks').update(u.patch).eq('id', u.book.id)));
+          const bad = res.find((r) => r.error); if (bad) throw bad.error;
+        }
+        await load();
+      } catch (e) { btn.disabled = false; btn.textContent = 'Import'; err.textContent = e.message || String(e); return; }
+      close();
+      toast('Imported: ' + plan.add.length + ' new, ' + plan.update.length + ' updated', 'ok');
+      renderStats(); renderBody();
+    }
+    const m = modal({
+      title: 'Import from OpenAudible', wide: true,
+      body: [el('div', { class: 'ty-sub lb-imp-intro' }, 'Choose an OpenAudible export (CSV or Excel), or your Twice-Yearly workbook. You see what will change before anything is saved.'),
+        el('label', { class: 'bh-field' }, el('span', null, 'Export file'), pick), out, err],
+      buttons: [{ label: 'Close' }, { label: 'Import', primary: true, onClick: apply }],
+    });
   }
 
   /* ---------- boot ---------- */

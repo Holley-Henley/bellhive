@@ -166,3 +166,17 @@ a.bh-ib, a.bh-btn { text-decoration: none; }
 .lb-row-end { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .lb-dbx { width: 28px; height: 28px; }
 .ty-info .lb-detail-acts { margin-top: 6px; }
+
+/* Add Book / Import */
+.lb-lookup { display: flex; gap: 8px; margin-bottom: 10px; }
+.lb-lookup input { flex: 1; min-width: 0; font: 14px var(--bh-font); padding: 9px 11px; border: 1px solid var(--bh-border2); border-radius: var(--bh-r); outline: none; }
+.lb-lookup input:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.lb-add-head { margin: 4px 0 14px; }
+.lb-add-check { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: -6px 0 6px; }
+.lb-add-check a:not([href]) { opacity: .4; pointer-events: none; }
+.lb-imp-intro { margin-bottom: 12px; white-space: normal; }
+.lb-imp-sum { margin: 6px 0 10px; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+.lb-imp-new { max-height: 200px; overflow: auto; border: 1px solid var(--bh-border); border-radius: var(--bh-r); padding: 8px 10px; margin-bottom: 10px; }
+.lb-imp-h { font-size: 11px; font-weight: 600; color: var(--bh-text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.lb-imp-note { margin-top: 4px; }
+.bh-btn:disabled { opacity: .6; cursor: default; }
