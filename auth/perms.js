@@ -36,6 +36,9 @@
       { key: 'audiobooks_twice',   label: 'Twice Yearly', href: 'audiobooks/twice-yearly.html' },
       { key: 'audiobooks_library', label: 'Library', href: 'audiobooks/library.html' },
     ] },
+    { section: 'music', label: 'Music', items: [
+      { key: 'music_library', label: 'Library', href: 'music/library.html', note: 'shared - everyone it is on for sees the whole collection', def: false },
+    ] },
     { section: 'links', label: 'Link Lists (outside websites)', items: [
       { key: 'links_search',  label: 'Search Engines' },
       { key: 'links_weather', label: 'Weather' },

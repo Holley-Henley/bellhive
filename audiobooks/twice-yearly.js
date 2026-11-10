@@ -230,7 +230,7 @@
     if (S.books) return S.books;
     const { data, error } = await BH.sb.from('audiobooks')
       .select('id, title, authors, series_name, series_seq, duration_seconds, cover_url, release_date')
-      .eq('owner_id', S.user.id).order('authors').order('series_name').order('title');
+      .order('authors').order('series_name').order('title'); // the whole shared Library
     if (error) throw error;
     S.books = data || [];
     return S.books;

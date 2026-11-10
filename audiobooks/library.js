@@ -7,7 +7,9 @@
  *   audiobooks          one row per book (Audible export: title, authors, narrators, series, cover...)
  *   audiobook_rotation  read here only to badge books that are on the Twice Yearly list,
  *                       and written when a book is added to that list from here
- * Each person keeps their own library: this page shows the rows owned by whoever is signed in.
+ * The Library is shared: anyone whose ADMIN > Permissions has Library on sees every book
+ *   (RLS policy audiobooks_read_shared). Status / notes / imports change only books the signed-in
+ *   person owns, or any book for admins (audiobooks_all). Twice Yearly badges stay per person.
  * Media Dropbox (ADMIN > Settings): Scan Dropbox finds files nobody links to; Play / Download / MP3
  *   in each book come from short-lived links made by the audiobooks edge function.
  * New books: Add Book (paste an Audible link; details come from the audiobooks edge function)
@@ -15,7 +17,7 @@
  * ============================================================ */
 (function () {
   const { el, toast, modal } = BH.ui;
-  const LIST_COLS = 'id, audible_key, asin, title, authors, narrators, series_name, series_seq, genre, publisher, release_date, purchase_date, duration_seconds, rating, rating_count, cover_url, m4b_file, mp3_file, read_status, notes, dropbox_path, file_size, pdf_path';
+  const LIST_COLS = 'id, owner_id, audible_key, asin, title, authors, narrators, series_name, series_seq, genre, publisher, release_date, purchase_date, duration_seconds, rating, rating_count, cover_url, m4b_file, mp3_file, read_status, notes, dropbox_path, file_size, pdf_path';
   const STATUS = [
     { id: 'Unread', label: 'Unread', icon: 'book-2' },
     { id: 'Reading', label: 'Listening', icon: 'headphones' },
@@ -52,12 +54,14 @@
   const ico = (name) => el('i', { class: 'ti ti-' + name, 'aria-hidden': 'true' });
   const statusOf = (b) => STATUS.find((s) => s.id === b.read_status) || null;
   const onList = (b) => S.rotation.some((r) => r.audiobook_id === b.id && r.active);
+  /* status, notes and imported details belong to the book's owner (admins can change any book) */
+  const canEdit = (b) => b.owner_id === S.user.id || BH.isAdmin();
   function fail(e) { console.error(e); toast(e.message || String(e), 'error'); }
 
   /* ---------- data ---------- */
   async function load() {
     const [books, rot] = await Promise.all([
-      BH.sb.from('audiobooks').select(LIST_COLS).eq('owner_id', S.user.id).order('authors'),
+      BH.sb.from('audiobooks').select(LIST_COLS).order('authors'),
       BH.sb.from('audiobook_rotation').select('id, audiobook_id, author, sort_order, active').eq('owner_id', S.user.id).order('sort_order'),
     ]);
     if (books.error) throw books.error;
@@ -211,13 +215,14 @@
           kv('Genre', b.genre ? b.genre.split(':').join(' › ') : ''), kv('Publisher', b.publisher),
           kv('Released', b.release_date ? fmtDate(b.release_date) : ''), kv('Purchased', b.purchase_date ? fmtDate(b.purchase_date) : ''),
           kv('File', (b.m4b_file || b.mp3_file) ? (b.m4b_file || b.mp3_file) + (b.file_size ? ' (' + fileSize(b.file_size) + ')' : '') : '')),
-        el('div', { class: 'bh-grid2 ty-gap' }, el('label', { class: 'bh-field' }, el('span', null, 'Status'), statusSel), el('span')),
-        el('label', { class: 'bh-field' }, el('span', null, 'Notes'), notes), err],
-      buttons: [{ label: 'Close' }, { label: 'Save', primary: true, onClick: async (close) => {
+        canEdit(b) ? el('div', { class: 'bh-grid2 ty-gap' }, el('label', { class: 'bh-field' }, el('span', null, 'Status'), statusSel), el('span')) : null,
+        canEdit(b) ? el('label', { class: 'bh-field' }, el('span', null, 'Notes'), notes) : null, err],
+      buttons: !canEdit(b) ? [{ label: 'Close' }] : [{ label: 'Close' }, { label: 'Save', primary: true, onClick: async (close) => {
         err.textContent = '';
         const patch = { read_status: statusSel.value || null, notes: notes.value.trim() || null };
-        const { error } = await BH.sb.from('audiobooks').update(patch).eq('id', b.id);
+        const { data: saved, error } = await BH.sb.from('audiobooks').update(patch).eq('id', b.id).select('id');
         if (error) { err.textContent = error.message; return; }
+        if (!saved || !saved.length) { err.textContent = 'Not saved - only the person who added this book (or an admin) can change it.'; return; }
         Object.assign(b, patch);
         close(); toast('Saved', 'ok'); renderStats(); renderBody();
       } }],
@@ -481,6 +486,8 @@
         }, ff));
         return;
       }
+      /* someone else's book in the shared Library: leave it alone */
+      if (!canEdit(have)) { plan.same++; return; }
       /* existing book: only fill what is empty, never undo edits made on the site */
       const patch = {}, why = [];
       FILL.forEach((k) => { if (blank(have[k]) && !blank(x[k])) patch[k] = x[k]; });

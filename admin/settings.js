@@ -5,7 +5,8 @@
  *                      disconnect. The site never looks outside /_Media with it.
  *   Audiobook Library  which /_Media folders the Library scans and plays from:
  *                      Library folder (m4b), MP3 folder (same names, .mp3), OpenAudible books.json.
- * All of it goes through the audiobooks edge function; the keys never come back to the browser.
+ *   Music Library      which /_Media folder MUSIC > Library scans (music edge function).
+ * All of it goes through the audiobooks / music edge functions; the keys never come back to the browser.
  * ============================================================ */
 (function () {
   const { el, toast } = BH.ui;
@@ -13,6 +14,7 @@
   const call = (action, payload) => BH.callFunction('audiobooks', Object.assign({ action }, payload));
   const ico = (name) => el('i', { class: 'ti ti-' + name, 'aria-hidden': 'true' });
   let S = null;
+  let M = {};          // music function: { settings } or { error }
 
   async function start() {
     try {
@@ -25,10 +27,40 @@
   async function refresh() {
     try { S = await call('media_status'); }
     catch (e) { box.replaceChildren(el('div', { class: 'bh-alert' }, 'Could not load settings: ' + e.message)); return; }
+    try { M = await BH.callFunction('music', { action: 'status' }); } catch (e) { M = { error: e.message }; }
     render();
   }
   function render() {
-    box.replaceChildren(mediaCard(), libraryCard());
+    box.replaceChildren(mediaCard(), libraryCard(), musicCard());
+  }
+
+  /* ---------- Music Library folder (music edge function) ---------- */
+  function musicCard() {
+    const head = el('div', { class: 'st-head' }, el('h2', null, ico('music'), 'Music Library'));
+    if (M.error) {
+      return el('div', { class: 'bh-card bh-card-pad' }, head,
+        el('div', { class: 'bh-alert' }, M.error),
+        el('p', { class: 'bh-note' }, 'Deploy the music edge function (supabase/functions/music: index.ts and tags.ts, Verify JWT off) and run supabase/music.sql, then reload this page.'));
+    }
+    const s = M.settings || {};
+    const folder = el('input', { value: s.music_folder || '', placeholder: '/_Media/Music/Music', spellcheck: false, autocomplete: 'off' });
+    const err = el('div', { class: 'bh-err st-err' });
+    const result = el('div', { class: 'st-result' });
+    const save = el('button', { class: 'bh-btn primary', type: 'button', onclick: async () => {
+      err.textContent = ''; result.innerHTML = ''; save.disabled = true; save.textContent = S.connected ? 'Checking folder…' : 'Saving…';
+      try {
+        const r = await BH.callFunction('music', { action: 'settings_save', music_folder: folder.value });
+        M.settings = r.settings; folder.value = r.settings.music_folder;
+        result.append(el('div', { class: 'bh-info' }, ico('circle-check'), el('div', null, r.check ? 'Saved - the folder is there. Run Scan Dropbox on MUSIC › Library to read it.' : 'Saved. The folder is checked once Dropbox is connected.')));
+        toast('Settings saved', 'ok');
+      } catch (e) { err.textContent = e.message; }
+      save.disabled = false; save.textContent = 'Save';
+    } }, 'Save');
+    return el('div', { class: 'bh-card bh-card-pad' }, head,
+      el('p', { class: 'bh-note' }, 'The folder in your Dropbox that ', el('a', { class: 'bh-link', href: '../music/library.html' }, 'MUSIC › Library'),
+        ' scans, including every folder inside it. Uses the same read-only Media connection as the audiobooks. Who can see the music is set per person on ADMIN › Permissions (Music › Library, off until you turn it on).'),
+      el('label', { class: 'bh-field' }, el('span', null, 'Music folder'), folder, el('small', { class: 'st-help' }, 'Must start with /_Media. Songs can be at the top or any number of folders down.')),
+      save, err, result);
   }
 
   /* ---------- Media (Dropbox) ---------- */

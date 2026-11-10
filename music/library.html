@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Chrisware / bellhive99.com - MUSIC > Library
+     The shared music collection in Dropbox (/_Media/Music/Music by default, any sub folders).
+     Data: supabase/music.sql, filled by the music edge function (supabase/functions/music).
+     Shares the AUDIOBOOKS look (../audiobooks/audiobooks.css); music.css adds the player. -->
+<title>Music · bellhive99</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="../audiobooks/audiobooks.css">
+<link rel="stylesheet" href="music.css">
+</head>
+<body class="bh-page">
+  <div class="bh-page-wrap ty-wrap mu-wrap">
+    <div class="bh-page-head">
+      <div>
+        <div class="crumb">Music</div>
+        <h1><i class="ti ti-music ty-title-ico"></i>Library</h1>
+      </div>
+      <div id="mu-acts" class="lb-acts"></div>
+    </div>
+    <div id="mu"><div class="bh-empty">Loading…</div></div>
+  </div>
+  <div id="mu-player" class="mu-player bh-gone"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/perms.js" data-perm="music_library"></script>
+  <script src="../auth/track.js"></script>
+  <script src="library.js"></script>
+</body>
+</html>

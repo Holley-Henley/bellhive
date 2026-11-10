@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
   async function download(path: string) {
     const r = await fetch(CONTENT + '/2/files/download', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + await accessToken(), 'Dropbox-API-Arg': JSON.stringify({ path }).replace(/[\u007f-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')) },
+      headers: { Authorization: 'Bearer ' + await accessToken(), 'Dropbox-API-Arg': JSON.stringify({ path }).replace(/[\u007f-\uffff]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')) },
     });
     if (!r.ok) { const t = await r.text(); const e = new Error('Dropbox said ' + r.status + ': ' + t.slice(0, 200)); (e as any).summary = t; throw e; }
     return await r.text();
@@ -294,8 +294,8 @@ Deno.serve(async (req) => {
       const lib = mediaPath(s.library_folder);
       if (!lib) return json({ error: 'The Library folder setting is not inside /_Media.' }, 400);
       const files = (await listFiles(lib)).filter((f) => AUDIO.test(f.name));
-      // what the caller's Library already links to (by Dropbox path, then by file name in that folder)
-      const { data: rows, error } = await asUser.from('audiobooks').select('dropbox_path, m4b_file, mp3_file').eq('owner_id', uid);
+      // what the shared Library already links to (by Dropbox path, then by file name in that folder)
+      const { data: rows, error } = await asUser.from('audiobooks').select('dropbox_path, m4b_file, mp3_file');
       if (error) throw error;
       const linked = new Set<string>();
       for (const r of rows || []) {

@@ -69,6 +69,7 @@
       users.map((x) => el('button', { class: 'pm-user' + (x.id === selId ? ' on' : ''), type: 'button', onclick: () => select(x.id) },
         el('span', { class: 'bh-av' }, BH.initials(x.full_name || x.email)),
         el('span', null, (x.full_name || x.email || '—') + (x.id === BH.user.id ? ' (you)' : ''),
+          x.id === selId && x.email ? el('span', { class: 'sub email' }, x.email) : null,
           el('span', { class: 'sub' }, (x.role === 'admin' ? 'Admin' : 'Member') + (x.active ? '' : ' · inactive'))),
         isCustom(x.id) ? el('span', { class: 'dot', title: 'Has changes from the defaults' }) : null)));
 
