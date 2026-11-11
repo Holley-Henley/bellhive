@@ -1,6 +1,7 @@
 /* bellhive99.com - MUSIC > Library. Builds on auth/auth.css and audiobooks/audiobooks.css. */
 .mu-wrap { padding-bottom: 96px; }               /* room for the player bar */
 #mu-stats { margin-bottom: 14px; }
+.mu-lib { max-width: 100%; }                      /* the Library picker */
 
 /* view tabs */
 .mu-tabs { display: inline-flex; border: 1px solid var(--bh-border2); border-radius: var(--bh-r); overflow: hidden; background: #fff; }

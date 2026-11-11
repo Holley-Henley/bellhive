@@ -7,6 +7,11 @@
  *                  folder / file name, else from MusicBrainz (tag_source says which)
  *   music_albums   MusicBrainz matches and Cover Art Archive covers
  *   music_folders  cover pictures found in the music folders (cover.jpg, folder.jpg, ...)
+ *   music_libraries one row per library: each folder directly inside the music root
+ *                  (/_Media/Music/Music, /_Media/Music/_Streamripper, ...). Every row above
+ *                  carries `library`; the Library picker shows one at a time (default: Music,
+ *                  set on ADMIN > Settings; the last one picked is remembered per browser).
+ *                  Admins also see folders that were never scanned, so new ones appear by themselves.
  * Everyone with Music > Library switched on sees all of it. Admins get Scan Dropbox (reads new
  * and changed files) and Match Online / Look Up Online (MusicBrainz). Play / Download use
  * short-lived Dropbox links from the music edge function.
@@ -41,6 +46,7 @@
   };
   const S = {
     user: null, admin: false, status: { connected: false },
+    lib: '', libs: [], libDefault: 'music', libError: '',
     tracks: [], albums: [], albumByKey: new Map(), folders: new Map(), extra: new Map(), artists: [],
     view: 'albums', q: '', genre: '', artist: '', sort: { albums: 'artist', songs: 'artist', artists: 'name' }, limit: 120, cont: true,
   };
@@ -54,8 +60,10 @@
     if (['albums', 'artists', 'songs'].includes(p.view)) S.view = p.view;
     if (p.sort) Object.keys(S.sort).forEach((k) => { if (SORTS[k][p.sort[k]]) S.sort[k] = p.sort[k]; });
     if (p.cont === false) S.cont = false;
+    if (typeof p.lib === 'string') S.lib = p.lib;
   })();
-  const remember = () => store('bh-music', { view: S.view, sort: S.sort, cont: S.cont });
+  const remember = () => store('bh-music', { view: S.view, sort: S.sort, cont: S.cont, lib: S.lib });
+  const libInfo = () => S.libs.find((l) => l.library === S.lib) || null;
 
   /* ---------- helpers ---------- */
   const pad = (n) => String(n).padStart(2, '0');
@@ -76,10 +84,11 @@
   function fail(e) { console.error(e); toast(e.message || String(e), 'error'); }
 
   /* ---------- data ---------- */
+  /* every row of one library */
   async function pageAll(table, cols, order) {
     const out = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await BH.sb.from(table).select(cols).order(order).range(from, from + 999);
+      const { data, error } = await BH.sb.from(table).select(cols).eq('library', S.lib).order(order).range(from, from + 999);
       if (error) throw error;
       out.push(...data);
       if (data.length < 1000) return out;
@@ -93,10 +102,37 @@
       S.extra = new Map(albums.map((a) => [a.album_key, a]));
       S.folders = new Map(folders.map((f) => [f.folder_lower, f.art_path]));
     } catch (e) {
-      if (/music_(tracks|albums|folders)/.test(e.message || '') && /exist|schema cache/.test(e.message || '')) throw new Error('The music tables are not set up yet. Run supabase/music.sql on the bellhive99 project.');
+      if (/music_(tracks|albums|folders|libraries)|library/.test(e.message || '') && /exist|schema cache/.test(e.message || '')) throw new Error('The music tables are not set up for libraries yet. Run supabase/music.sql on the bellhive99 project.');
       throw e;
     }
     build();
+  }
+  /* which libraries there are; keeps the one picked if it is still there, else the default */
+  async function loadLibraries() {
+    let r;
+    try { r = await call('libraries'); }
+    catch (e) {
+      // no edge function to ask: fall back to the scanned libraries row level security shows
+      const { data, error } = await BH.sb.from('music_libraries').select('library, name, folder, files, scanned_at').order('library');
+      if (error) throw error;
+      r = { default: 'music', libraries: data || [], root_error: e.message };
+    }
+    S.libs = r.libraries || [];
+    S.libDefault = r.default || 'music';
+    S.libError = r.root_error || '';
+    const has = (k) => S.libs.some((l) => l.library === k);
+    if (!has(S.lib)) S.lib = has(S.libDefault) ? S.libDefault : (S.libs[0] && S.libs[0].library) || S.libDefault;
+  }
+  async function switchLibrary(key) {
+    if (key === S.lib) return;
+    S.lib = key; S.q = ''; S.artist = ''; S.genre = ''; S.limit = 120;
+    remember();
+    ART.clear(); ARTP.clear();
+    renderHead();
+    const body = document.getElementById('mu-body');
+    if (body) body.replaceChildren(el('div', { class: 'bh-empty' }, 'Loading…'));
+    try { await load(); } catch (e) { fail(e); S.tracks = []; build(); }
+    renderHead(); renderAll();
   }
   function build() {
     const groups = new Map();
@@ -251,13 +287,45 @@
     const search = el('input', { type: 'search', class: 'lb-search', placeholder: 'Search songs, artists, albums…', value: S.q });
     let t = null;
     search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { S.q = search.value; S.limit = 120; renderBody(); }, 150); });
+    const libs = S.libs.length ? S.libs : [{ library: S.lib, name: S.lib || 'Music' }];
+    const libLabel = (l) => l.name + (l.in_dropbox === false ? ' (folder gone)' : !l.scanned_at ? ' (not scanned)' : l.files != null ? ' (' + Number(l.files).toLocaleString('en-US') + ')' : '');
+    acts.append(el('select', { class: 'ty-select mu-lib', 'aria-label': 'Library', title: 'Which music library to show - each folder in ' + (S.libs[0] ? dirOf(S.libs[0].folder) : 'the music root') + ' is its own',
+      onchange: (e) => switchLibrary(e.target.value) },
+      libs.map((l) => el('option', { value: l.library, selected: l.library === S.lib }, 'Library: ' + libLabel(l)))));
+    const cur = libInfo();
+    if (S.admin && cur && cur.in_dropbox === false) {
+      acts.append(el('button', { class: 'bh-btn danger', type: 'button', title: 'The folder is no longer in Dropbox - remove its songs from the site', onclick: forgetLibrary }, ico('trash'), 'Remove Library'));
+    }
     if (S.admin) {
-      const off = !S.status.connected;
+      const off = !S.status.connected || !!(cur && cur.in_dropbox === false);
       acts.append(
-        el('button', { class: 'bh-btn', type: 'button', disabled: off, title: off ? 'Connect the Media Dropbox on ADMIN › Settings first' : 'Read new and changed files in the music folder', onclick: openScan }, ico('folder-search'), 'Scan Dropbox'),
+        el('button', { class: 'bh-btn', type: 'button', disabled: off, title: off ? 'Connect the Media Dropbox on ADMIN › Settings first' : 'Read new and changed files in ' + ((cur && cur.folder) || 'this library\'s folder'), onclick: openScan }, ico('folder-search'), 'Scan Dropbox'),
         el('button', { class: 'bh-btn', type: 'button', disabled: !S.albums.length, title: 'Look albums up in MusicBrainz for covers and missing details', onclick: openMatch }, ico('world-search'), 'Match Online'));
     }
     acts.append(search);
+  }
+
+  function forgetLibrary() {
+    const l = libInfo();
+    if (!l) return;
+    modal({
+      title: 'Remove Library',
+      body: [el('p', null, el('b', null, l.folder), ' is no longer in Dropbox. Remove its ' + plural(Number(l.files) || 0, 'song') + ', albums and online matches from the site? Nothing in Dropbox is touched, and scanning the folder again brings it back if it returns.')],
+      buttons: [
+        { label: 'Cancel' },
+        { label: 'Remove', danger: true, onClick: async (close) => {
+          try {
+            await call('library_forget', { library: l.library });
+            close();
+            toast('Library removed', 'ok');
+            S.lib = '';
+            await loadLibraries();
+            remember();
+            ART.clear(); ARTP.clear();
+            await load(); renderHead(); renderAll();
+          } catch (e) { fail(e); }
+        } }],
+    });
   }
 
   function renderStats() {
@@ -279,10 +347,12 @@
     body.innerHTML = '';
     if (!S.tracks.length) {
       body.append(el('div', { class: 'bh-card bh-empty' },
-        el('div', null, ico('music'), ' The music library is empty.'),
+        el('div', null, ico('music'), ' The ' + ((libInfo() && libInfo().name) || 'music') + ' library is empty.'),
         el('div', { class: 'ty-sub lb-wrap', style: 'margin-top:6px' }, S.admin
-          ? (S.status.connected ? 'Click Scan Dropbox to read the music folder. ADMIN › Settings › Music says which folder that is.' : 'Connect the Media Dropbox on ADMIN › Settings first, then click Scan Dropbox.')
-          : 'An admin needs to scan the music folder first.')));
+          ? (S.libError ? S.libError
+            : S.status.connected ? 'Click Scan Dropbox to read ' + ((libInfo() && libInfo().folder) || 'this library\'s folder') + '. Every folder in the music root (ADMIN › Settings › Music) is its own library - pick one above.'
+            : 'Connect the Media Dropbox on ADMIN › Settings first, then click Scan Dropbox.')
+          : 'An admin needs to scan this library first.')));
       return;
     }
     const tab = (k, label, icon, n) => el('button', { type: 'button', class: S.view === k ? 'on' : '', onclick: () => { S.view = k; S.limit = 120; remember(); renderBody(); } }, ico(icon), label + ' ', el('span', { class: 'ty-sub' }, n.toLocaleString('en-US')));
@@ -404,7 +474,7 @@
           x ? [ico('world'), 'Details and cover from ', el('a', { class: 'bh-link', href: 'https://musicbrainz.org/release/' + x.mb_release_id, target: '_blank', rel: 'noopener' }, 'MusicBrainz'),
             x.mb_artist || x.mb_title ? ' (' + [x.mb_artist, x.mb_title].filter(Boolean).join(' – ') + ')' : '',
             S.admin ? el('button', { class: 'bh-link mu-link', type: 'button', onclick: async () => {
-              try { await call('mb_clear', { album_key: a.key }); S.extra.delete(a.key); forgetArt(a.key); build(); renderAll(); reopen(); toast('Match removed', 'ok'); } catch (e) { fail(e); }
+              try { await call('mb_clear', { library: S.lib, album_key: a.key }); S.extra.delete(a.key); forgetArt(a.key); build(); renderAll(); reopen(); toast('Match removed', 'ok'); } catch (e) { fail(e); }
             } }, 'Remove match') : null] : null,
           S.admin && filenames ? el('span', null, plural(filenames, 'song') + ' had no tags - the details come from the file names.') : null) : null,
       ],
@@ -426,7 +496,7 @@
       const use = el('button', { class: 'bh-btn sm primary', type: 'button', onclick: async () => {
         use.disabled = true; use.textContent = 'Saving…'; err.textContent = '';
         try {
-          const res = await call('mb_apply', { album_key: a.key, release_id: r.id });
+          const res = await call('mb_apply', { library: S.lib, album_key: a.key, release_id: r.id });
           S.extra.set(a.key, res.album);
           forgetArt(a.key);
           if (res.filled) await load(); else build();
@@ -475,14 +545,14 @@
     const btn = el('button', { class: 'bh-btn primary', type: 'button', onclick: async () => {
       if (running) { stop = true; btn.textContent = 'Stopping…'; btn.disabled = true; return; }
       running = true; stop = false; btn.textContent = 'Stop'; retry.disabled = true; prog.classList.remove('bh-gone');
-      const todo = list();
+      const todo = list(), lib = S.lib;
       let done = 0, matched = 0, none = 0, errors = 0;
       const update = () => { msg.textContent = 'Looked up ' + done + ' of ' + todo.length + ': ' + matched + ' matched, ' + none + ' no sure match' + (errors ? ', ' + errors + ' errors' : '') + '.'; prog.firstChild.style.width = (todo.length ? (100 * done) / todo.length : 100) + '%'; };
       update();
       for (const a of todo) {
-        if (stop) break;
+        if (stop || lib !== S.lib) break;
         try {
-          const r = await call('mb_auto', { album_key: a.key, artist: a.artist, album: a.title, tracks: a.tracks.length });
+          const r = await call('mb_auto', { library: lib, album_key: a.key, artist: a.artist, album: a.title, tracks: a.tracks.length });
           if (r.matched) { matched++; S.extra.set(a.key, r.album); forgetArt(a.key); } else { none++; S.extra.set(a.key, { album_key: a.key, mb_status: 'none' }); }
         } catch (e) { errors++; if (/busy/i.test(e.message || '')) await wait(5000); }
         done++; update();
@@ -523,7 +593,9 @@
     };
     (async () => {
       try {
-        const r = await call('scan');
+        const lib = S.lib;
+        const r = await call('scan', { library: lib });
+        loadLibraries().then(() => renderHead()).catch(() => {});
         const total = r.todo.length;
         const head = plural(r.files, 'music file') + ' in ' + r.folder + (r.removed ? ' · ' + r.removed + ' removed' : '') + ' · ' + plural(r.pictures, 'cover picture');
         if (!total) { msg.textContent = head + '. Everything is up to date.'; return finish(); }
@@ -537,7 +609,7 @@
             next += 12;
             let res = null;
             for (let tries = 0; !res; tries++) {
-              try { res = await call('index', { files: batch }); }
+              try { res = await call('index', { library: lib, files: batch }); }
               catch (e) { if (tries >= 2) res = { done: 0, failed: batch.map((f) => ({ path: f.path, error: e.message })) }; else await wait(2000 * (tries + 1)); }
             }
             done += batch.length; problems += res.failed.length;
@@ -759,8 +831,9 @@
       S.admin = BH.isAdmin();
       if (BH.track) BH.track('music-library');
       initPlayer();
-      await load();
       try { S.status = await call('status'); } catch (e) { S.status = { connected: false, error: e.message }; }
+      await loadLibraries();
+      await load();
       renderHead();
       root.replaceChildren(el('div', { id: 'mu-stats' }), el('div', { id: 'mu-body' }));
       if (S.status.error && S.admin) root.prepend(el('div', { class: 'bh-alert' }, 'Music function: ' + S.status.error));

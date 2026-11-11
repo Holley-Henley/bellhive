@@ -4,22 +4,31 @@
 // (integration_secrets 'dropbox_media', set up on ADMIN > Settings). Every path is held to
 // /_Media; nothing in Dropbox is ever changed. Its own settings row: 'music_settings'.
 //
+// LIBRARIES: the music root (default /_Media/Music) holds one folder per library
+// (/_Media/Music/Music, /_Media/Music/_Streamripper, ...). A library's key is its folder name in
+// lower case; every row in music_tracks / music_albums / music_folders carries it, and
+// music_libraries lists the ones that have been scanned. New folders show up by themselves.
+//
 //   status                                -> { connected, is_admin, settings? }
-//   settings_save { music_folder }        -> checks + saves (admins)
-//   scan                                  -> lists the music folder (all sub folders), drops rows for
-//                                            files that are gone, saves the cover pictures it finds,
-//                                            and returns the files that are new or changed (admins)
-//   index { files: [{path, size, hash, modified}] } (<= 25)
+//   settings_save { music_root, default_library } -> checks + saves (admins)
+//   libraries                             -> { default, libraries: [{library, name, folder, files,
+//                                            scanned_at, in_dropbox}] } - admins also get folders in
+//                                            the root that were never scanned (and ones now gone)
+//   library_forget { library }            -> removes every row of a library whose folder is gone (admins)
+//   scan { library }                      -> lists that library's folder (all sub folders), drops rows
+//                                            for files that are gone, saves the cover pictures it
+//                                            finds, returns the files that are new or changed (admins)
+//   index { library, files: [{path, size, hash, modified}] } (<= 25)
 //                                         -> reads each file's tags (falls back to folder / file
 //                                            names) and saves the rows (admins)
 //   link { id }                           -> short-lived (4 h) link to play / download one track
 //   art_links { paths: [] } (<= 60)       -> short-lived links to cover pictures in the folders
 //   art { track_id }                      -> the picture embedded in a file (image bytes)
 //   mb_search { artist, album }           -> MusicBrainz releases that could be this album (admins)
-//   mb_apply { album_key, release_id }    -> saves the match + Cover Art Archive cover, fills in
-//                                            titles for tracks that had no tags (admins)
-//   mb_auto { album_key, artist, album, tracks } -> search and apply only a near-certain match (admins)
-//   mb_clear { album_key }                -> forget the match (admins)
+//   mb_apply { library, album_key, release_id } -> saves the match + Cover Art Archive cover, fills
+//                                            in titles for tracks that had no tags (admins)
+//   mb_auto { library, album_key, artist, album, tracks } -> search and apply only a near-certain match (admins)
+//   mb_clear { library, album_key }       -> forget the match (admins)
 // Members (Music > Library switched on) can use link / art_links / art; row level security
 // on the caller's own session decides what they can see.
 //
@@ -42,7 +51,9 @@ const CONTENT = 'https://content.dropboxapi.com';
 const ROOT = '/_media';
 const AUDIO = /\.(mp3|mp2|flac|m4a|mp4|aac|alac|ogg|oga|opus|wav|aif|aiff|aifc|wma|ape|wv|mpc|dsf|dff|tak)$/i;
 const IMAGE = /\.(jpe?g|png|webp|gif)$/i;
-const DEFAULTS = { music_folder: '/_Media/Music/Music' };
+const DEFAULTS = { music_root: '/_Media/Music', default_library: 'Music' };
+/* a library is one folder name: no slashes, no dot names */
+const libKey = (v: unknown) => { const s = String(v || '').trim().toLowerCase(); return s && !/[\/\\]/.test(s) && s !== '.' && s !== '..' ? s : ''; };
 const MB = 'https://musicbrainz.org/ws/2/';
 let tokenCache: { token: string; until: number; refresh: string } | null = null;
 
@@ -160,7 +171,31 @@ Deno.serve(async (req) => {
   };
   const conn = await getRow('dropbox_media');
   const connected = !!(conn.app_key && conn.app_secret && conn.refresh_token);
-  const settings = async () => Object.assign({}, DEFAULTS, await getRow('music_settings')) as typeof DEFAULTS;
+  const settings = async () => {
+    const raw = await getRow('music_settings');
+    // older settings named one folder (/_Media/Music/Music): its parent is the root, it is the default
+    if (!raw.music_root && raw.music_folder) { raw.music_root = dirName(raw.music_folder); raw.default_library = baseName(raw.music_folder); }
+    return { music_root: raw.music_root || DEFAULTS.music_root, default_library: raw.default_library || DEFAULTS.default_library };
+  };
+  /* the folders directly inside the music root, from Dropbox */
+  async function rootFolders(root: string) {
+    const out: { library: string; name: string; folder: string }[] = [];
+    let page = await dbx('files/list_folder', { path: root, recursive: false, limit: 2000 });
+    for (;;) {
+      for (const e of page.entries || []) if (e['.tag'] === 'folder') out.push({ library: e.name.toLowerCase(), name: e.name, folder: e.path_display });
+      if (!page.has_more) break;
+      page = await dbx('files/list_folder/continue', { cursor: page.cursor });
+    }
+    return out;
+  }
+  /* a library the caller named -> its saved row (index / mb need it scanned first) */
+  async function savedLibrary(v: unknown) {
+    const key = libKey(v);
+    if (!key) return null;
+    const { data, error } = await db.from('music_libraries').select('*').eq('library', key).maybeSingle();
+    if (error) throw error;
+    return data as { library: string; name: string; folder: string } | null;
+  }
 
   async function accessToken() {
     if (tokenCache && tokenCache.refresh === conn.refresh_token && Date.now() < tokenCache.until) return tokenCache.token;
@@ -264,7 +299,7 @@ Deno.serve(async (req) => {
       group_id: r['release-group']?.id || null, type: r['release-group']?.['primary-type'] || '', status: r.status || '',
     }));
   }
-  async function mbApply(key: string, releaseId: string) {
+  async function mbApply(lib: string, key: string, releaseId: string) {
     const rel = await mb('release/' + encodeURIComponent(releaseId) + '?inc=recordings+artist-credits+release-groups+genres');
     const gid = rel['release-group']?.id || null;
     const year = parseInt(String(rel.date || rel['release-group']?.['first-release-date'] || '').slice(0, 4)) || null;
@@ -272,14 +307,14 @@ Deno.serve(async (req) => {
     const cover = rel['cover-art-archive']?.front ? 'https://coverartarchive.org/release/' + rel.id + '/front-500'
       : gid ? 'https://coverartarchive.org/release-group/' + gid + '/front-500' : null;
     const row = {
-      album_key: key, mb_status: 'matched', mb_release_id: rel.id, mb_release_group_id: gid, mb_title: rel.title,
+      library: lib, album_key: key, mb_status: 'matched', mb_release_id: rel.id, mb_release_group_id: gid, mb_title: rel.title,
       mb_artist: credit(rel['artist-credit']), mb_year: year, mb_genre: genres.join('; ') || null, cover_url: cover,
       checked_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
-    const { error } = await db.from('music_albums').upsert(row, { onConflict: 'album_key' });
+    const { error } = await db.from('music_albums').upsert(row, { onConflict: 'library,album_key' });
     if (error) throw error;
     // tracks that had no tags: take titles from the release by disc + track number
-    const { data: tracks, error: te } = await db.from('music_tracks').select('id, track_no, disc_no, tag_source').eq('album_key', key);
+    const { data: tracks, error: te } = await db.from('music_tracks').select('id, track_no, disc_no, tag_source').eq('library', lib).eq('album_key', key);
     if (te) throw te;
     const byPos = new Map<string, any>();
     (rel.media || []).forEach((m: any, mi: number) => (m.tracks || []).forEach((tk: any) => byPos.set((m.position || mi + 1) + '|' + tk.position, tk)));
@@ -305,17 +340,60 @@ Deno.serve(async (req) => {
     }
     if (action === 'settings_save') {
       if (!isAdmin) return adminOnly();
-      const p = mediaPath(body.music_folder);
-      if (!p) return json({ error: 'The Music folder must be inside /_Media (for example ' + DEFAULTS.music_folder + ').' }, 400);
-      let check = '';
+      const p = mediaPath(body.music_root);
+      if (!p || p.toLowerCase() === ROOT) return json({ error: 'The Music root must be a folder inside /_Media (for example ' + DEFAULTS.music_root + ').' }, 400);
+      let def = String(body.default_library || '').trim() || DEFAULTS.default_library;
+      if (!libKey(def)) return json({ error: 'The default library is one folder name inside the root, like ' + DEFAULTS.default_library + '.' }, 400);
+      let check = '', libraries: string[] = [];
       if (connected) {
-        try { const m = await dbx('files/get_metadata', { path: p }); if (m['.tag'] !== 'folder') return json({ error: p + ' is not a folder.' }, 400); check = 'found'; }
+        try { const m = await dbx('files/get_metadata', { path: p }); if (m['.tag'] !== 'folder') return json({ error: p + ' is not a folder.' }, 400); }
         catch (e) { return json({ error: notFound(e) ? 'Dropbox has no folder ' + p : (e as Error).message }, 400); }
+        const found = await rootFolders(p);
+        libraries = found.map((f) => f.name);
+        const hit = found.find((f) => f.library === libKey(def));
+        if (!hit) return json({ error: 'There is no folder ' + def + ' in ' + p + '. Folders there: ' + (libraries.join(', ') || 'none') + '.' }, 400);
+        def = hit.name; check = 'found';
       }
-      const { error } = await db.from('integration_secrets').upsert({ name: 'music_settings', data: { music_folder: p }, updated_at: new Date().toISOString() });
+      const data = { music_root: p, default_library: def };
+      const { error } = await db.from('integration_secrets').upsert({ name: 'music_settings', data, updated_at: new Date().toISOString() });
       if (error) throw error;
-      await audit('music_settings', 'Music folder ' + p);
-      return json({ ok: true, settings: { music_folder: p }, check });
+      await audit('music_settings', 'Music root ' + p + ', default library ' + def);
+      return json({ ok: true, settings: data, check, libraries });
+    }
+
+    // ================= libraries =================
+    if (action === 'libraries') {
+      const s = await settings();
+      // members: what row level security lets them see (scanned libraries)
+      const { data: rows, error } = await (isAdmin ? db : asUser).from('music_libraries').select('library, name, folder, files, scanned_at').order('library');
+      if (error) throw error;
+      const map = new Map<string, any>((rows || []).map((r) => [r.library, { ...r, in_dropbox: null }]));
+      let root_error = '';
+      if (isAdmin && connected) {
+        const root = mediaPath(s.music_root);
+        try {
+          const found = root ? await rootFolders(root) : [];
+          const keys = new Set(found.map((f) => f.library));
+          for (const f of found) map.set(f.library, { files: 0, scanned_at: null, ...map.get(f.library), name: f.name, folder: f.folder, library: f.library, in_dropbox: true });
+          map.forEach((v, k) => { if (!keys.has(k)) v.in_dropbox = false; });
+        } catch (e) { root_error = notFound(e) ? 'Dropbox has no folder ' + s.music_root + '. Check ADMIN › Settings › Music.' : (e as Error).message; }
+      }
+      const libraries = [...map.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'en', { sensitivity: 'base' }));
+      return json({ default: libKey(s.default_library), root: s.music_root, libraries, root_error: root_error || undefined });
+    }
+    if (action === 'library_forget') {
+      if (!isAdmin) return adminOnly();
+      const lib = await savedLibrary(body.library);
+      if (!lib) return json({ error: 'Unknown library.' }, 400);
+      if (!connected) return json({ error: 'Connect the Media Dropbox first, so the folder can be checked.' }, 409);
+      try { await dbx('files/get_metadata', { path: lib.folder }); return json({ error: lib.folder + ' is still in Dropbox - run Scan Dropbox instead.' }, 400); }
+      catch (e) { if (!notFound(e)) throw e; }
+      for (const t of ['music_tracks', 'music_albums', 'music_folders', 'music_libraries']) {
+        const { error } = await db.from(t).delete().eq('library', lib.library);
+        if (error) throw error;
+      }
+      await audit('music_library_forget', 'Removed library ' + lib.name + ' (' + lib.folder + ')');
+      return json({ ok: true });
     }
 
     // ================= MusicBrainz (admins; no Dropbox needed) =================
@@ -326,22 +404,23 @@ Deno.serve(async (req) => {
         if (!String(body.album || '').trim()) return json({ error: 'Type the album name to search for.' }, 400);
         return json({ releases: await mbSearch(String(body.artist || ''), String(body.album || '')) });
       }
-      if (!key) return json({ error: 'Which album?' }, 400);
+      const lib = libKey(body.library);
+      if (!key || !lib) return json({ error: 'Which album?' }, 400);
       if (action === 'mb_apply') {
         const id = String(body.release_id || '');
         if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: 'Unknown release.' }, 400);
-        const r = await mbApply(key, id);
+        const r = await mbApply(lib, key, id);
         await audit('music_match', 'Matched ' + (r.album.mb_artist || '') + ' - ' + (r.album.mb_title || '') + ' (MusicBrainz ' + id + ')');
         return json(r);
       }
       if (action === 'mb_clear') {
-        const { error } = await db.from('music_albums').delete().eq('album_key', key);
+        const { error } = await db.from('music_albums').delete().eq('library', lib).eq('album_key', key);
         if (error) throw error;
         return json({ ok: true });
       }
       if (action === 'mb_auto') {
         const album = String(body.album || ''), artist = String(body.artist || ''), count = intOrNull(body.tracks);
-        const mark = (status: 'none') => db.from('music_albums').upsert({ album_key: key, mb_status: status, checked_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'album_key' });
+        const mark = (status: 'none') => db.from('music_albums').upsert({ library: lib, album_key: key, mb_status: status, checked_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'library,album_key' });
         if (!album) { await mark('none'); return json({ matched: false }); }
         const list = await mbSearch(artist, album);
         const various = !artist || /^various( artists)?$/i.test(artist);
@@ -352,7 +431,7 @@ Deno.serve(async (req) => {
           || (b.status === 'Official' ? 1 : 0) - (a.status === 'Official' ? 1 : 0) || b.score - a.score);
         if (!fits.length) { await mark('none'); return json({ matched: false }); }
         await sleep(1100);                           // MusicBrainz: about one request a second
-        const r = await mbApply(key, fits[0].id);
+        const r = await mbApply(lib, key, fits[0].id);
         return json({ matched: true, ...r });
       }
       return json({ error: 'Unknown action: ' + action }, 400);
@@ -363,8 +442,17 @@ Deno.serve(async (req) => {
     // ================= scan: what is in the music folder? (admins) =================
     if (action === 'scan') {
       if (!isAdmin) return adminOnly();
-      const root = mediaPath((await settings()).music_folder);
-      if (!root) return json({ error: 'The Music folder setting is not inside /_Media.' }, 400);
+      const s = await settings();
+      const musicRoot = mediaPath(s.music_root);
+      if (!musicRoot) return json({ error: 'The Music root setting is not inside /_Media.' }, 400);
+      const key = libKey(body.library);
+      if (!key) return json({ error: 'Which library?' }, 400);
+      let found: { library: string; name: string; folder: string } | undefined;
+      try { found = (await rootFolders(musicRoot)).find((f) => f.library === key); }
+      catch (e) { if (notFound(e)) return json({ error: 'Dropbox has no folder ' + musicRoot + '. Check ADMIN › Settings › Music.' }, 400); throw e; }
+      if (!found) return json({ error: 'There is no library folder ' + key + ' in ' + musicRoot + ' any more.' }, 400);
+      const lib = found.library;
+      const root = mediaPath(found.folder)!;
       const files: { path: string; path_lower: string; size: number; hash: string; modified: string }[] = [];
       const pics = new Map<string, { folder: string; art: string; score: number }>();
       let page: any;
@@ -385,7 +473,7 @@ Deno.serve(async (req) => {
       // what is already saved
       const have = new Map<string, string>();
       for (let from = 0; ; from += 1000) {
-        const { data, error } = await db.from('music_tracks').select('path_lower, content_hash').order('path_lower').range(from, from + 999);
+        const { data, error } = await db.from('music_tracks').select('path_lower, content_hash').eq('library', lib).order('path_lower').range(from, from + 999);
         if (error) throw error;
         for (const r of data || []) have.set(r.path_lower, r.content_hash || '');
         if (!data || data.length < 1000) break;
@@ -393,27 +481,32 @@ Deno.serve(async (req) => {
       const seen = new Set(files.map((f) => f.path_lower));
       const gone = [...have.keys()].filter((k) => !seen.has(k));
       for (let i = 0; i < gone.length; i += 200) {
-        const { error } = await db.from('music_tracks').delete().in('path_lower', gone.slice(i, i + 200));
+        const { error } = await db.from('music_tracks').delete().eq('library', lib).in('path_lower', gone.slice(i, i + 200));
         if (error) throw error;
       }
       const todo = files.filter((f) => have.get(f.path_lower) !== f.hash || !have.has(f.path_lower))
         .map((f) => ({ path: f.path, size: f.size, hash: f.hash, modified: f.modified }));
-      // cover pictures: replace the whole list
-      const picRows = [...pics.entries()].map(([k, v]) => ({ folder_lower: k, folder: v.folder, art_path: v.art }));
-      const { error: de } = await db.from('music_folders').delete().neq('folder_lower', '');
+      // cover pictures: replace this library's list
+      const picRows = [...pics.entries()].map(([k, v]) => ({ folder_lower: k, library: lib, folder: v.folder, art_path: v.art }));
+      const { error: de } = await db.from('music_folders').delete().eq('library', lib);
       if (de) throw de;
       for (let i = 0; i < picRows.length; i += 500) {
-        const { error } = await db.from('music_folders').insert(picRows.slice(i, i + 500));
+        const { error } = await db.from('music_folders').upsert(picRows.slice(i, i + 500), { onConflict: 'folder_lower' });
         if (error) throw error;
       }
+      const { error: le } = await db.from('music_libraries').upsert({ library: lib, name: found.name, folder: root, files: files.length, scanned_at: new Date().toISOString() }, { onConflict: 'library' });
+      if (le) throw le;
       await audit('music_scan', 'Scanned ' + root + ': ' + files.length + ' files, ' + todo.length + ' new or changed, ' + gone.length + ' removed');
-      return json({ folder: root, files: files.length, unchanged: files.length - todo.length, removed: gone.length, pictures: picRows.length, todo });
+      return json({ library: lib, folder: root, files: files.length, unchanged: files.length - todo.length, removed: gone.length, pictures: picRows.length, todo });
     }
 
     // ================= index: read tags + save (admins) =================
     if (action === 'index') {
       if (!isAdmin) return adminOnly();
-      const root = mediaPath((await settings()).music_folder)!;
+      const libRow = await savedLibrary(body.library);
+      const root = libRow ? mediaPath(libRow.folder) : null;
+      if (!libRow || !root) return json({ error: 'Scan the library first.' }, 400);
+      const lib = libRow.library;
       const list = (Array.isArray(body.files) ? body.files : []).slice(0, 25) as any[];
       const failed: { path: string; error: string }[] = [];
       const rows = await pool(list, 5, async (f) => {
@@ -427,7 +520,7 @@ Deno.serve(async (req) => {
         const album = tags.album || (fn.album as string) || null;
         const albumArtist = tags.album_artist || null;
         return {
-          path, path_lower: path.toLowerCase(), content_hash: String(f.hash || '') || null, size: size || null, modified: f.modified || null, ext,
+          library: lib, path, path_lower: path.toLowerCase(), content_hash: String(f.hash || '') || null, size: size || null, modified: f.modified || null, ext,
           title: tags.title || (fn.title as string) || stem(baseName(path)),
           artist: tags.artist || (fn.artist as string) || albumArtist,
           album_artist: albumArtist, album,
