@@ -77,6 +77,19 @@ const loose = (s: unknown) => String(s || '').normalize('NFKD').replace(/[\u0300
 const intOrNull = (v: unknown, max = 100000) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n < max ? n : null; };
 const DISC_DIR = /^(cd|disc|disk|part)\s*[-_.]?\s*\d+\b/i;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/* .in() lists travel in the request URL, which the API turns away past ~8 KB ("Bad Request"):
+   split long path lists so each URL stays well under that */
+function urlBatches(list: string[], budget = 5000) {
+  const out: string[][] = [];
+  let cur: string[] = [], len = 0;
+  for (const s of list) {
+    const n = encodeURIComponent(s).length + 3;
+    if (cur.length && (len + n > budget || cur.length >= 200)) { out.push(cur); cur = []; len = 0; }
+    cur.push(s); len += n;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
 /* Dropbox-API-Arg must be ASCII */
 const apiArg = (o: unknown) => JSON.stringify(o).replace(/[\u007f-\uffff]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
 
@@ -480,8 +493,8 @@ Deno.serve(async (req) => {
       }
       const seen = new Set(files.map((f) => f.path_lower));
       const gone = [...have.keys()].filter((k) => !seen.has(k));
-      for (let i = 0; i < gone.length; i += 200) {
-        const { error } = await db.from('music_tracks').delete().eq('library', lib).in('path_lower', gone.slice(i, i + 200));
+      for (const batch of urlBatches(gone)) {
+        const { error } = await db.from('music_tracks').delete().eq('library', lib).in('path_lower', batch);
         if (error) throw error;
       }
       const todo = files.filter((f) => have.get(f.path_lower) !== f.hash || !have.has(f.path_lower))
@@ -556,8 +569,12 @@ Deno.serve(async (req) => {
     if (action === 'art_links') {
       const paths = (Array.isArray(body.paths) ? body.paths : []).map(String).slice(0, 60);
       if (!paths.length) return json({ links: {} });
-      const { data, error } = await asUser.from('music_folders').select('art_path').in('art_path', paths);
-      if (error) throw error;
+      const data: { art_path: string }[] = [];
+      for (const batch of urlBatches(paths)) {
+        const { data: d, error } = await asUser.from('music_folders').select('art_path').in('art_path', batch);
+        if (error) throw error;
+        data.push(...(d || []));
+      }
       const links: Record<string, string | null> = {};
       await pool((data || []).map((r) => r.art_path as string), 8, async (p) => {
         const mp = mediaPath(p);
