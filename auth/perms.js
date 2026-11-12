@@ -24,7 +24,6 @@
   const TREE = [
     { section: 'main', label: 'Main Menu', items: [
       { key: 'fileshare', label: 'File Share', href: 'fileshare/index.html' },
-      { key: 'workout',   label: 'Workout', href: 'workout/index.html', note: 'each person only ever sees their own log' },
       { key: 'pictures',  label: 'Pictures (SmugMug galleries)', href: 'pictures/index.html' },
       { key: 'guestbook', label: 'Guest Book', href: 'guestbook/index.html' },
     ] },
@@ -39,14 +38,12 @@
     { section: 'music', label: 'Music', items: [
       { key: 'music_library', label: 'Library', href: 'music/library.html', note: 'shared - everyone it is on for sees the whole collection', def: false },
     ] },
+    { section: 'health', label: 'Health and Fitness', items: [
+      { key: 'workout',   label: 'Workout', href: 'workout/index.html', note: 'each person only ever sees their own log' },
+      { key: 'bloodpressure', label: 'Blood Pressure', href: 'bloodpressure/index.html', note: 'each person only ever sees their own readings' },
+    ] },
     { section: 'links', label: 'Link Lists (outside websites)', items: [
       { key: 'links_search',  label: 'Search Engines' },
-      { key: 'links_weather', label: 'Weather' },
-      { key: 'links_news',    label: 'News' },
-      { key: 'links_misc',    label: 'Miscellaneous' },
-      { key: 'links_gaming',  label: 'Gaming' },
-      { key: 'links_travel',  label: 'Travel' },
-      { key: 'links_brewing', label: 'Brewing' },
     ] },
   ];
   BH.PERM_TREE = TREE;

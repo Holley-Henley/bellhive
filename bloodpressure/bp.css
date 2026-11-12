@@ -1,0 +1,38 @@
+/* bellhive99.com - Blood Pressure (uses auth/auth.css for the shared look) */
+.bp-wrap { max-width: 560px; }
+.bp-topbar { position: sticky; top: 0; z-index: 20; }
+.bp-head-note { font-size: 12px; color: var(--bh-text3); }
+
+/* ---------- entry ---------- */
+.bp-entry { display: flex; flex-direction: column; gap: 4px;
+  background: radial-gradient(520px 160px at 100% 0, rgba(242,177,52,.10), transparent 70%), var(--bh-surface); }
+.bp-entry .bh-field small { font-weight: 400; color: var(--bh-text3); text-transform: none; letter-spacing: 0; }
+.bp-nums { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+.bp-nums input { font: 700 30px/1.1 var(--bh-display) !important; text-align: center; padding: 8px 6px !important; }
+.bp-slash { font: 300 40px/1 var(--bh-display); color: var(--bh-text3); padding-bottom: 18px; }
+.bp-entry textarea { width: 100%; box-sizing: border-box; font: 14px/1.5 var(--bh-font); padding: 8px 10px; border: 1px solid var(--bh-border2);
+  border-radius: var(--bh-r); resize: vertical; outline: none; color: var(--bh-text); background: #fff; min-height: 52px; }
+.bp-entry textarea:focus { border-color: var(--bh-brand-mid); box-shadow: 0 0 0 3px rgba(242,177,52,.25); }
+.bp-err { text-align: left; min-height: 0; margin: 0 0 6px; }
+.bp-err:empty { display: none; }
+.bp-save { align-self: stretch; justify-content: center; display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; font-size: 15px; }
+.bp-save svg, .bp-row svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- latest readings ---------- */
+.bp-recent-t { margin: 22px 2px 8px; font: 700 13px var(--bh-font); text-transform: uppercase; letter-spacing: .08em; color: var(--bh-text3); }
+.bp-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; padding: 10px 14px;
+  background: var(--bh-surface); border: 1px solid var(--bh-border); border-radius: var(--bh-rl); }
+.bp-row + .bp-row { margin-top: 8px; }
+.bp-val { font: 700 24px/1 var(--bh-display); color: var(--bh-text); white-space: nowrap; }
+.bp-val span { color: var(--bh-text3); font-weight: 400; margin: 0 2px; }
+.bp-main { min-width: 0; }
+.bp-when-t { font-size: 13px; color: var(--bh-text2); }
+.bp-note { font-size: 13px; color: var(--bh-text3); margin-top: 2px; overflow-wrap: anywhere; }
+.bp-row.pop { animation: bp-pop .45s ease-out; box-shadow: inset 3px 0 0 var(--bh-accent); }
+@keyframes bp-pop { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.bp-empty { padding: 26px; margin-top: 14px; }
+#bp-recent > .bh-alert { margin-top: 14px; }
+@media (max-width: 480px) {
+  .bp-row { grid-template-columns: 78px 1fr auto; padding: 10px; }
+  .bp-val { font-size: 21px; }
+}

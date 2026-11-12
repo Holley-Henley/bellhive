@@ -139,7 +139,7 @@
     const href = String(n.href || '').trim();
     const text = String(n.text || '').trim().slice(0, 80) || href;
     if (!href || /^(javascript:|#)/i.test(href)) return;
-    if (/^(workout|pictures|admin|guestbook|fileshare|vehicles)\//i.test(href) || /^(index\.html?|account\.html)$/i.test(href)) return;
+    if (/^(workout|bloodpressure|pictures|admin|guestbook|fileshare|vehicles)\//i.test(href) || /^(index\.html?|account\.html)$/i.test(href)) return;
     if (/^(https?:|mailto:|ftp:)/i.test(href)) BH.audit('link_open', 'opened outside link "' + text + '"', href, 'site');
     else BH.pageOpen(text + ' (old site page)', 'site', href);
   }

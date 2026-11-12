@@ -43,7 +43,10 @@
     daily_add:        { label: 'Daily entry',           kind: 'create' },
     daily_edit:       { label: 'Daily entry changed',   kind: 'update' },
     daily_delete:     { label: 'Daily entry cleared',   kind: 'delete' },
-    smugmug_connect:    { label: 'SmugMug connected',    kind: 'create' },
+    bp_add:           { label: 'BP reading logged',     kind: 'create' },
+    bp_edit:          { label: 'BP reading edited',     kind: 'update' },
+    bp_delete:        { label: 'BP reading deleted',    kind: 'delete' },
+    smugmug_connect:   { label: 'SmugMug connected',    kind: 'create' },
     smugmug_disconnect: { label: 'SmugMug disconnected', kind: 'delete' },
     page_open:        { label: 'Page opened',           kind: 'view' },
     link_open:        { label: 'Outside link',          kind: 'view' },
@@ -75,6 +78,7 @@
     { id: 'users', label: 'User management', test: (e) => /^user_/.test(e.action_type) },
     { id: 'logging', label: 'Workout logging (sets & daily)', test: (e) => /^(set|daily)_/.test(e.action_type) },
     { id: 'setup', label: 'Workout setup', test: (e) => /^(exercise|tracker|workout)_/.test(e.action_type) },
+    { id: 'bp', label: 'Blood Pressure', test: (e) => /^bp_/.test(e.action_type) },
     { id: 'guestbook', label: 'Guest Book', test: (e) => /^guestbook_/.test(e.action_type) },
     { id: 'vehicles', label: 'Inventory & maintenance', test: (e) => /^(vehicle|maint)_/.test(e.action_type) },
     { id: 'views', label: 'Pages, albums & links opened', test: (e) => act(e).kind === 'view' },
@@ -88,7 +92,7 @@
     { id: '365', label: 'Last 12 months', days: 365 },
     { id: 'all', label: 'All time', days: null },
   ];
-  const MODULES = { site: 'Site', admin: 'Admin', workout: 'Workout', pictures: 'Pictures', fileshare: 'File Share', guestbook: 'Guest Book', vehicles: 'Inventory' };
+  const MODULES = { site: 'Site', admin: 'Admin', workout: 'Workout', bloodpressure: 'Blood Pressure', pictures: 'Pictures', fileshare: 'File Share', guestbook: 'Guest Book', vehicles: 'Inventory' };
   const SOURCES = { browser: 'Browser', database: 'Database', server: 'Server', visit: 'Visitor log' };
   const SOURCE_NOTE = {
     browser: 'Written by the page in the browser.',

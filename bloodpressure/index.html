@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blood Pressure · bellhive99</title>
+<link rel="stylesheet" href="../auth/auth.css">
+<link rel="stylesheet" href="bp.css">
+</head>
+<!-- Blood Pressure log (HEALTH AND FITNESS > Blood Pressure).
+     Quick entry of a reading; each person only ever sees their own (supabase/blood-pressure.sql). -->
+<body class="bh-page">
+  <div id="bp"><div class="bh-empty">Loading…</div></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth/config.js"></script>
+  <script src="../auth/auth.js" data-root="../"></script>
+  <script src="../auth/perms.js" data-perm="bloodpressure"></script>
+  <script src="../auth/track.js"></script>
+  <script src="bp.js"></script>
+</body>
+</html>

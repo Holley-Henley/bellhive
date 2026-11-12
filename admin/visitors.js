@@ -5,7 +5,7 @@
   const mc = document.getElementById('mc');
   const RANGES = [['1', 'Last 24 hours', 1], ['7', 'Last 7 days', 7], ['30', 'Last 30 days', 30], ['90', 'Last 90 days', 90], ['365', 'Last 12 months', 365], ['all', 'All time', null]];
   const WHO = [['', 'Everyone'], ['anon', 'Signed-out visitors'], ['member', 'Signed-in members']];
-  const PAGE_LABEL = { login: 'Sign-in page', home: 'Home', pictures: 'Pictures', workout: 'Workout', account: 'My Account', guestbook: 'Guest Book', fileshare: 'File Share', 'vehicles-inventory': 'Inventory', 'vehicles-maintenance': 'Maintenance' };
+  const PAGE_LABEL = { login: 'Sign-in page', home: 'Home', pictures: 'Pictures', workout: 'Workout', bloodpressure: 'Blood Pressure', account: 'My Account', guestbook: 'Guest Book', fileshare: 'File Share', 'vehicles-inventory': 'Inventory', 'vehicles-maintenance': 'Maintenance' };
   const state = { range: '30', who: '', bots: false };
   let all = [], names = {}, map = null, layer = null;
 
