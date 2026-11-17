@@ -175,6 +175,22 @@
   const jarWall = new THREE.Mesh(new THREE.CylinderGeometry(JAR_R, JAR_R, JAR_H, 48, 1, true), glassMat); jarWall.position.y = JAR_H / 2; jarWall.renderOrder = 3; jar.add(jarWall);
   const jarRim = new THREE.Mesh(new THREE.TorusGeometry(JAR_R, 0.025, 8, 48), glassMat); jarRim.rotation.x = Math.PI / 2; jarRim.position.y = JAR_H; jarRim.renderOrder = 3; jar.add(jarRim);
   const jarBase = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(JAR_R, JAR_R, 0.04, 48), glassMat)); jarBase.position.y = 0.02; jar.add(jarBase);
+  /* masking-tape label, marker handwriting: SOY SAUCE (wraps the front of the jar) */
+  const labelTex = canvasTex(1024, 256, (g, w, h) => {
+    g.fillStyle = '#e8dcb8'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1800; i++) { g.fillStyle = `rgba(120,100,60,${rand(0.03, 0.1)})`; g.fillRect(rand(0, w), rand(0, h), rand(1, 3), 1); }
+    g.fillStyle = 'rgba(90,70,40,0.25)';   /* torn, darker edges */
+    for (let x = 0; x < w; x += 6) { g.fillRect(x, 0, 6, rand(3, 10)); g.fillRect(x, h - rand(3, 10), 6, 10); }
+    g.save(); g.translate(w / 2, h / 2 + 8); g.rotate(-0.035);
+    g.font = 'bold 150px "Permanent Marker", "Marker Felt", "Comic Sans MS", "Segoe Print", cursive';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#141414'; g.fillText('SOY SAUCE', 0, 0);
+    g.restore();
+  });
+  labelTex.wrapS = labelTex.wrapT = THREE.ClampToEdgeWrapping;
+  const label = new THREE.Mesh(new THREE.CylinderGeometry(JAR_R + 0.006, JAR_R + 0.006, 0.3, 48, 1, true, -1.15, 2.3),
+    new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.85, side: THREE.DoubleSide }));
+  label.position.y = 0.46; label.rotation.z = 0.02; jar.add(label);
   const lid = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.07, 40), new THREE.MeshStandardMaterial({ color: 0x8a8f96, metalness: 0.5, roughness: 0.45 })));
   lid.position.set(0.95, 0.035, 0.95); lid.rotation.set(0.06, 0, 0.04); scene.add(lid);   /* knocked off */
 
