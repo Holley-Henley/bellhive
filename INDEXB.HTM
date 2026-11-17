@@ -175,7 +175,7 @@ const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.98, 0.8, 28),
 stump.position.y = (GROUND_Y + -0.11) / 2; stump.castShadow = stump.receiveShadow = true;
 scene.add(stump);
 
-const board = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 2.2),
+const board = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.12, 2.5),
   new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.85 }));
 board.position.y = -0.06; board.castShadow = board.receiveShadow = true;
 scene.add(board); clickable.push(board);
@@ -197,10 +197,19 @@ const plaqueTex = canvasTex(1024, 320, (g, w, h) => {
 });
 plaqueTex.wrapS = plaqueTex.wrapT = THREE.ClampToEdgeWrapping;
 const plainWood = new THREE.MeshStandardMaterial({ color: 0x7a4e26, roughness: 0.9 });
-const plaque = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.72, 0.06),
-  [plainWood, plainWood, plainWood, plainWood, new THREE.MeshStandardMaterial({ map: plaqueTex, roughness: 0.8 }), plainWood]);
-plaque.position.set(0, -0.5, 1.02); plaque.rotation.x = -0.06; plaque.castShadow = true;
-scene.add(plaque);
+/* a plaque on each of the four sides, meeting at the corners like a box around the stump */
+const logoMat = new THREE.MeshStandardMaterial({ map: plaqueTex, roughness: 0.8 });
+const PL_T = 0.06, PL_OUT = 1.15, PL_H = 0.76;
+for (let k = 0; k < 4; k++) {
+  const wide = PL_OUT * 2 - (k % 2 ? PL_T * 2 : 0);   /* side plaques tuck inside the front/back ones */
+  const plaque = new THREE.Mesh(new THREE.BoxGeometry(wide, PL_H, PL_T),
+    [plainWood, plainWood, plainWood, plainWood, logoMat, plainWood]);
+  const a = k * Math.PI / 2;
+  plaque.position.set(Math.sin(a) * (PL_OUT - PL_T / 2), -0.12 - PL_H / 2, Math.cos(a) * (PL_OUT - PL_T / 2));
+  plaque.rotation.y = a;
+  plaque.castShadow = plaque.receiveShadow = true;
+  scene.add(plaque); clickable.push(plaque);
+}
 
 /* ---------- the skep: coiled straw rings ---------- */
 const skep = new THREE.Group(); skep.position.y = 0.075; scene.add(skep);
