@@ -10,8 +10,8 @@
 <table border="0" cellpadding="3" width="100%">
   <tr>
     <td align="center" valign="top" width="90%">
-      <!-- 3D beehive (replaced the old title + stream.gif, Nov 2026); same 503x453 footprint -->
-      <div id="hive3d" title="Drag to look around &middot; click the hive to stir up a swarm" style="width: 503px; max-width: 100%; height: 453px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
+      <!-- 3D beehive (replaced the old title + stream.gif, Nov 2026); twice the old 503x453 footprint -->
+      <div id="hive3d" title="Drag to look around &middot; click the hive to stir up a swarm" style="width: 1006px; max-width: 100%; height: 906px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
     </td>
   </tr>
   <tr>
@@ -180,26 +180,26 @@ const board = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 2.2),
 board.position.y = -0.06; board.castShadow = board.receiveShadow = true;
 scene.add(board); clickable.push(board);
 
-const plaqueTex = canvasTex(512, 160, (g, w, h) => {
+const plaqueTex = canvasTex(1024, 320, (g, w, h) => {
   woodDraw('#8f5e30', ['#6e4522', '#a8723f', '#5e3a1c'])(g, w, h);
-  g.strokeStyle = 'rgba(40,20,5,0.6)'; g.lineWidth = 6; g.strokeRect(8, 8, w - 16, h - 16);
+  g.strokeStyle = 'rgba(40,20,5,0.6)'; g.lineWidth = 12; g.strokeRect(16, 16, w - 32, h - 32);
   const parts = [['bell', '#2a1608', 'bold'], ['hive', '#f0b02a', 'bold'], ['99', '#2a1608', 'bold']];
-  g.font = 'bold 76px Georgia, "Times New Roman", serif'; g.textBaseline = 'middle';
+  g.font = 'bold 152px Georgia, "Times New Roman", serif'; g.textBaseline = 'middle';
   const total = parts.reduce((s, p) => s + g.measureText(p[0]).width, 0);
   let x = (w - total) / 2;
   for (const [txt, col] of parts) {
-    g.fillStyle = 'rgba(255,235,190,0.35)'; g.fillText(txt, x + 2, h / 2 + 4);   /* carved highlight */
-    g.fillStyle = col; g.fillText(txt, x, h / 2 + 2);
+    g.fillStyle = 'rgba(255,235,190,0.35)'; g.fillText(txt, x + 4, h / 2 + 8);   /* carved highlight */
+    g.fillStyle = col; g.fillText(txt, x, h / 2 + 4);
     x += g.measureText(txt).width;
   }
   g.fillStyle = '#2b2b2b';
-  [[26, 26], [w - 26, 26], [26, h - 26], [w - 26, h - 26]].forEach(([nx, ny]) => { g.beginPath(); g.arc(nx, ny, 5, 0, 7); g.fill(); });
+  [[52, 52], [w - 52, 52], [52, h - 52], [w - 52, h - 52]].forEach(([nx, ny]) => { g.beginPath(); g.arc(nx, ny, 10, 0, 7); g.fill(); });
 });
 plaqueTex.wrapS = plaqueTex.wrapT = THREE.ClampToEdgeWrapping;
 const plainWood = new THREE.MeshStandardMaterial({ color: 0x7a4e26, roughness: 0.9 });
-const plaque = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.36, 0.05),
+const plaque = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.72, 0.06),
   [plainWood, plainWood, plainWood, plainWood, new THREE.MeshStandardMaterial({ map: plaqueTex, roughness: 0.8 }), plainWood]);
-plaque.position.set(0, -0.5, 0.95); plaque.rotation.x = -0.1; plaque.castShadow = true;
+plaque.position.set(0, -0.5, 1.02); plaque.rotation.x = -0.06; plaque.castShadow = true;
 scene.add(plaque);
 
 /* ---------- the skep: coiled straw rings ---------- */
@@ -392,7 +392,7 @@ renderer.domElement.addEventListener('pointermove', (e) => {
 
 /* ---------- sizing ---------- */
 function resize() {
-  const w = box.clientWidth || 503, h = Math.round(w * ASPECT);
+  const w = box.clientWidth || 1006, h = Math.round(w * ASPECT);
   box.style.height = h + 'px';
   renderer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
