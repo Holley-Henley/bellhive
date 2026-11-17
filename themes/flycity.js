@@ -13,7 +13,7 @@
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const glowColor = (r, g, b) => new THREE.Color(r, g, b);
 
-  box.title = 'Drag to look around · click and the taxi dives';
+  box.title = 'Drag to look around \u00b7 click and the taxi dives';
   const mask = 'linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent)';
   box.style.webkitMaskImage = mask; box.style.maskImage = mask;
   box.style.webkitMaskComposite = 'source-in'; box.style.maskComposite = 'intersect';
@@ -183,7 +183,7 @@
     const yellow = new THREE.MeshStandardMaterial({ color: 0xf2c41c, roughness: 0.35, metalness: 0.35 });
     const checkTex = canvasTex(256, 32, (g, w, h) => { for (let x = 0; x < w; x += 16) for (let y = 0; y < h; y += 16) { g.fillStyle = ((x + y) / 16) % 2 ? '#111' : '#f2c41c'; g.fillRect(x, y, 16, 16); } });
     const prof = new THREE.Shape();   /* side profile, nose at +z */
-    prof.moveTo(-2.3, 0); prof.lineTo(2.2, 0); prof.lineTo(2.55, 0.35); prof.lineTo(2.1, 0.75); prof.lineTo(0.9, 0.85); prof.lineTo(0.3, 1.45); prof.lineTo(-1.3, 1.45); prof.lineTo(-2.0, 0.9); prof.lineTo(-2.3, 0.75); prof.closePath();
+    prof.moveTo(-2.3, 0); prof.lineTo(2.2, 0); prof.lineTo(2.55, 0.35); prof.lineTo(2.1, 0.75); prof.lineTo(0.9, 0.85); prof.lineTo(-2.0, 0.85); prof.lineTo(-2.3, 0.75); prof.closePath();
     const body = new THREE.ExtrudeGeometry(prof, { depth: 2.2, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 2 });
     body.rotateY(-Math.PI / 2); body.translate(1.1, -0.6, 0);
     taxi.add(new THREE.Mesh(body, yellow));
@@ -191,11 +191,22 @@
       const stripe = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.28), new THREE.MeshStandardMaterial({ map: checkTex, roughness: 0.5 }));
       stripe.position.set(s * 1.24, 0.12, 0); stripe.rotation.y = s * Math.PI / 2; taxi.add(stripe);
       const win = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.1, metalness: 0.8 }));
-      win.position.set(s * 1.235, 0.55, -0.2); win.rotation.y = s * Math.PI / 2; taxi.add(win);
+      win.visible = false;
     }
     const ws = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 0.75), new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.1, metalness: 0.8 }));
-    ws.position.set(0, 0.5, 0.66); ws.rotation.x = -0.75; taxi.add(ws);
-    const sign2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.28, 0.35), new THREE.MeshBasicMaterial({ color: glowColor(2.4, 2.0, 0.6), toneMapped: false })); sign2.position.set(0, 0.98, -0.4); taxi.add(sign2);
+    ws.visible = false;
+    /* glass cabin with a roof, so the driver shows */
+    const glass = new THREE.MeshStandardMaterial({ color: 0x9fc4e0, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide });
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.62, 2.1), glass); cabin.position.set(0, 0.56, -0.35); cabin.renderOrder = 2; taxi.add(cabin);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.07, 2.2), yellow); roof.position.set(0, 0.9, -0.35); taxi.add(roof);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), yellow); post.position.set(sx * 0.98, 0.56, -0.35 + sz * 1.03); taxi.add(post); }
+    if (window.BHFigures) {
+      const driver = BHFigures.person(THREE, { height: 1.5, hat: 'cap', hatColor: 0x2a3a5a, hair: 'short', hairColor: 0x2a2018, topColor: 0xd8cfb8, skin: 0xd8a480 });
+      driver.root.position.set(-0.45, -0.68, -0.15); taxi.add(driver.root);
+      driver.update(0, { armL: -1.15, armR: -1.15, armLz: 0.25, armRz: -0.25 });
+      taxi.userData.driver = driver;
+    }
+    const sign2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.28, 0.35), new THREE.MeshBasicMaterial({ color: glowColor(2.4, 2.0, 0.6), toneMapped: false })); sign2.position.set(0, 1.07, -0.4); taxi.add(sign2);
     const thr = new THREE.MeshBasicMaterial({ color: glowColor(0.5, 0.9, 1.7), toneMapped: false });
     for (const s of [-1, 1]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.2, 16).rotateX(Math.PI / 2), thr); t.position.set(s * 0.75, -0.25, -2.42); taxi.add(t); }
     const hl = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.08), new THREE.MeshBasicMaterial({ color: glowColor(3, 3, 2.6), toneMapped: false })); hl.position.set(0, -0.05, 2.62); taxi.add(hl);
@@ -203,6 +214,42 @@
   }
   taxi.scale.setScalar(0.95);
   let dive = -1;
+
+  /* ---------- the orange-haired figure on a ledge (leaps when the taxi dives) ---------- */
+  const LEDGE = V(9.9, 17.5, 6);
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.3, 1.6), bridgeMat); ledge.position.set(LEDGE.x + 2.3, LEDGE.y - 0.15, LEDGE.z); city.add(ledge);
+  let leaper = null, leap = -1;
+  if (window.BHFigures) {
+    leaper = BHFigures.person(THREE, { height: 1.75, straps: true, shorts: true, bottomColor: 0xf4f2ee, skin: 0xf0d2bc, hair: 'bob', hairColor: 0xff6a12, fringe: true, shoeColor: 0xd8a040 });
+    leaper.root.position.copy(LEDGE); leaper.root.rotation.y = -Math.PI / 2 + 0.4; scene.add(leaper.root);
+  }
+
+  /* ---------- the blue singer on a floating stage ---------- */
+  const stage = new THREE.Group(); stage.position.set(-7.6, 6.5, 8); scene.add(stage);
+  const stageLights = [];
+  let singer = null;
+  const notes = [];
+  {
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.1, 0.35, 32), new THREE.MeshStandardMaterial({ color: 0x2a2440, metalness: 0.6, roughness: 0.35 }));
+    stage.add(disc);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: glowColor(2.2, 0.6, 2.0), toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.18; stage.add(rim);
+    const under = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.15, 0.6, 16), new THREE.MeshBasicMaterial({ color: glowColor(0.6, 1.2, 2.6), toneMapped: false })); under.position.y = -0.45; stage.add(under);
+    [0xff4fd0, 0x4fd8ff, 0xffd24f].forEach((c, i) => {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.1, 5, 24, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      cone.position.set(0, 2.7, 0); const holder = new THREE.Group(); holder.add(cone); holder.rotation.set(0.25, (i / 3) * Math.PI * 2, 0); holder.position.y = 0.2; stage.add(holder);
+      const pl = new THREE.PointLight(c, 6, 8, 1.6); pl.position.set(Math.sin(i * 2.1) * 1.5, 3.5, Math.cos(i * 2.1) * 1.5); stage.add(pl);
+      stageLights.push({ holder, cone, pl, i });
+    });
+    if (window.BHFigures) {
+      singer = BHFigures.person(THREE, { height: 2.0, alien: true, skin: 0x4a86d8, hair: 'none', robe: 0xece4f6, eyes: 0x221830 });
+      singer.root.position.y = 0.18; singer.root.rotation.y = 0.55; stage.add(singer.root);
+    }
+    const noteTex = ['\u266a', '\u266b', '\u2669'].map((ch) => canvasTex(64, 64, (g, w, h) => { g.font = 'bold 54px "Segoe UI Symbol", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(ch, w / 2, h / 2); }));
+    for (let i = 0; i < 10; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: noteTex[i % 3], color: glowColor(...[[2, 0.6, 1.8], [0.6, 1.6, 2.2], [2, 1.7, 0.5]][i % 3]), transparent: true, depthWrite: false, toneMapped: false }));
+      sp.scale.setScalar(0.7); stage.add(sp); notes.push({ sp, t: i * 0.45 });
+    }
+  }
 
   /* ---------- controls, click, sizing ---------- */
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -216,7 +263,7 @@
   let down = null;
   renderer.domElement.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
   renderer.domElement.addEventListener('pointerup', (e) => {
-    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 6 && dive < 0) dive = 0;
+    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 6 && dive < 0) { dive = 0; if (leap < 0) leap = 0; }
     down = null;
   });
 
@@ -271,6 +318,36 @@
     taxi.position.set(Math.sin(t * 0.42) * 6.5, 10 + Math.sin(t * 0.29) * 3.2 + dy, 4 + Math.sin(t * 0.21) * 5);
     vel.subVectors(taxi.position, prev).divideScalar(Math.max(dt, 1e-3));
     taxi.rotation.set(Math.max(-0.9, Math.min(0.5, vel.y * 0.03)), Math.PI + vel.x * 0.02, -vel.x * 0.05);
+    if (taxi.userData.driver) taxi.userData.driver.update(t, { armL: -1.15, armR: -1.15, armLz: 0.25 + Math.sin(t * 0.42) * 0.12, armRz: -0.25 + Math.sin(t * 0.42) * 0.12, look: -vel.x * 0.02 });
+
+    /* the leap: a swan dive off the ledge into the traffic, then she's back */
+    if (leaper) {
+      if (leap >= 0) {
+        leap += dt;
+        const k = Math.min(leap, 2.6);
+        leaper.root.position.set(LEDGE.x - 5.5 * k, LEDGE.y + 2.2 * k - 4.9 * k * k, LEDGE.z - 1.5 * k);
+        leaper.root.rotation.set(Math.min(1.4, k * 0.9), -Math.PI / 2 + 0.4, 0);
+        leaper.update(t, { armL: -2.9, armR: -2.9, armLz: 0.1, armRz: -0.1 });
+        leaper.root.visible = leap < 2.6;
+        if (leap > 7) { leap = -1; leaper.root.position.copy(LEDGE); leaper.root.rotation.set(0, -Math.PI / 2 + 0.4, 0); leaper.root.visible = true; }
+      } else {
+        leaper.update(t, { armL: -0.2, armR: -0.15 + Math.sin(t * 0.6) * 0.1, look: Math.sin(t * 0.3) * 0.5 });
+      }
+    }
+
+    /* the singer: arms rise with the high notes, lights sweep, notes float up */
+    if (singer) {
+      const sing = Math.sin(t * 1.3);
+      singer.update(t, { armL: -1.2 - 0.9 * Math.max(0, sing), armR: -1.0 - 1.2 * Math.max(0, -sing), armLz: 0.5, armRz: -0.5, tilt: Math.sin(t * 0.9) * 0.15, lean: -0.1 * Math.max(0, sing) });
+    }
+    stage.position.y = 6.5 + Math.sin(t * 0.5) * 0.3;
+    stageLights.forEach((l) => { l.holder.rotation.y = (l.i / 3) * Math.PI * 2 + t * 0.6; l.cone.material.opacity = 0.04 + 0.025 * Math.sin(t * 3 + l.i); });
+    for (const n of notes) {
+      n.t += dt;
+      const k = (n.t % 4.5) / 4.5;
+      n.sp.position.set(Math.sin(n.t * 1.7) * 0.8 + 0.3, 2.2 + k * 4, Math.cos(n.t * 1.3) * 0.6);
+      n.sp.material.opacity = Math.sin(k * Math.PI);
+    }
 
     signs.forEach((s) => (s.m.material.color.setScalar(s.flick && Math.sin(t * 13 + s.ph) > 0.85 ? 0.3 : 1.4)));
     bbMat.color.setScalar(1.2 + Math.sin(t * 2) * 0.12);

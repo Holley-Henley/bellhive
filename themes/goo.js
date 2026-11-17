@@ -15,7 +15,7 @@
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const glowColor = (r, g, b) => new THREE.Color(r, g, b);
 
-  box.title = 'Drag to look around · click to poke the goo';
+  box.title = 'Drag to look around \u00b7 click to poke the goo';
   const mask = 'linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent)';
   box.style.webkitMaskImage = mask; box.style.maskImage = mask;
   box.style.webkitMaskComposite = 'source-in'; box.style.maskComposite = 'intersect';
@@ -305,6 +305,42 @@
     const d = shadowy(new THREE.Mesh(new THREE.SphereGeometry(s, 16, 10), gooMat)); d.scale.y = 0.35; d.position.set(x, s * 0.3, z); scene.add(d); drips.push(d);
   }
 
+  /* ---------- two slackers in hoodies behind the table ---------- */
+  const dudes = window.BHFigures ? [
+    { x: -2.1, z: -1.55, ry: 0.5, o: { hair: 'messy', hairColor: 0x3a2616, topColor: 0x3d4a33, hoodie: true, bottomColor: 0x34465e, skin: 0xe2b896 } },
+    { x: 2.15, z: -1.5, ry: -0.55, o: { hair: 'short', hairColor: 0x1a1410, hat: 'cap', hatColor: 0x2a2a30, topColor: 0x6a2a2a, hoodie: true, bottomColor: 0x2e3440, skin: 0xc89a78 } },
+  ].map((d) => {
+    const p = BHFigures.person(THREE, Object.assign({ height: 3.5 }, d.o));
+    p.root.position.set(d.x, -1.6, d.z); p.root.rotation.y = d.ry; scene.add(p.root);
+    p.root.traverse((m) => { if (m.isMesh) m.receiveShadow = true; });
+    return p;
+  }) : [];
+  let flinch = 0;
+
+  /* ---------- the dog: paws up on the table, eyeing the sausage ---------- */
+  const dog = new THREE.Group(); dog.position.set(-0.85, 0, 1.78); scene.add(dog);
+  const dogHead = new THREE.Group(); dogHead.position.set(0, 0.42, 0); dog.add(dogHead);
+  const ears = [];
+  {
+    const fur = new THREE.MeshStandardMaterial({ color: 0xb9813e, roughness: 0.9 });
+    const furDark = new THREE.MeshStandardMaterial({ color: 0x8a5a26, roughness: 0.9 });
+    const black = new THREE.MeshStandardMaterial({ color: 0x0c0a08, roughness: 0.3 });
+    const add = (p, geo, mat, x, y, z) => { const m = shadowy(new THREE.Mesh(geo, mat)); m.position.set(x, y, z); p.add(m); return m; };
+    const skull = add(dogHead, new THREE.SphereGeometry(0.2, 20, 16), fur, 0, 0, 0); skull.scale.set(1, 0.95, 1.05);
+    const snout = add(dogHead, new THREE.CylinderGeometry(0.09, 0.12, 0.24, 14).rotateX(Math.PI / 2), fur, 0, -0.06, -0.24);
+    add(dogHead, new THREE.SphereGeometry(0.045, 10, 8), black, 0, -0.03, -0.37);
+    for (const s of [-1, 1]) {
+      add(dogHead, new THREE.SphereGeometry(0.03, 10, 8), black, s * 0.09, 0.06, -0.17);
+      const ear = new THREE.Group(); ear.position.set(s * 0.16, 0.1, 0.02); dogHead.add(ear);
+      const e = add(ear, new THREE.SphereGeometry(0.1, 12, 10), furDark, 0, -0.1, 0); e.scale.set(0.35, 1.1, 0.75);
+      ears.push({ ear, s });
+      const leg = add(dog, new THREE.CylinderGeometry(0.06, 0.07, 0.6, 10), fur, s * 0.14, -0.22, 0.08); leg.rotation.x = 0.35;
+      add(dog, new THREE.SphereGeometry(0.075, 12, 10), fur, s * 0.14, 0.05, -0.12).scale.set(1, 0.6, 1.3);   /* paws on the table */
+    }
+    const chest = add(dog, new THREE.SphereGeometry(0.28, 18, 14), fur, 0, -0.35, 0.3); chest.scale.set(0.9, 1.2, 1);
+  }
+  let duck = 0;
+
   /* ---------- the poke: splatter, droplets crawl home ---------- */
   const drops = Array.from({ length: 14 }, () => {
     const m = shadowy(new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), gooMat)); m.visible = false; scene.add(m);
@@ -312,7 +348,7 @@
   });
   let blackout = 0;
   function poke() {
-    quake = 1; blackout = 0.7;
+    quake = 1; blackout = 0.7; flinch = 1.6; duck = 1.8;
     eyes.forEach((e) => { e.want = 1; e.timer = rand(2.5, 4); });
     drops.forEach((d) => {
       const a = rand(0, Math.PI * 2);
@@ -426,6 +462,23 @@
       if (k >= 1) sausageT = -1;
     }
     drips.forEach((d, i) => (d.scale.y = 0.33 + 0.04 * Math.sin(t * 1.5 + i)));
+
+    /* the guys stare at the jar; a poke makes them jump back, hands up */
+    flinch = Math.max(0, flinch - dt);
+    const fk = smooth(0, 0.25, flinch) ;
+    dudes.forEach((p, i) => {
+      const idle = i === 0 ? { armL: -0.55, armR: -0.55, armLz: 0.55, armRz: -0.55 } : { armR: -0.9 + Math.sin(t * 0.8) * 0.08, armL: 0.05 };
+      p.update(t, fk > 0.01 ? { armL: -2.7 * fk, armR: -2.7 * fk, armLz: 0.2, armRz: -0.2, lean: -0.25 * fk, look: 0 } : Object.assign({ look: Math.sin(t * 0.3 + i * 2) * 0.25, tilt: Math.sin(t * 0.45 + i) * 0.08 }, idle));
+      p.root.position.z = (i === 0 ? -1.55 : -1.5) - 0.35 * fk;
+    });
+
+    /* the dog watches the sausage, ears flop; ducks when the goo pops */
+    duck = Math.max(0, duck - dt);
+    const dk = smooth(0, 0.3, duck);
+    const sniff = Math.sin(t * 9) * 0.015 * (sausageT >= 0 ? 0 : 1);
+    dogHead.position.y = 0.42 - 0.5 * dk + sniff + (sausageT >= 0 ? 0.06 : 0);
+    dogHead.rotation.set(0.2 + (sausageT >= 0 ? -0.3 : 0), 1.15 + Math.sin(t * 0.7) * 0.15, Math.sin(t * 0.5) * 0.18);   /* snout points into the scene, toward the plate */
+    ears.forEach(({ ear, s }) => (ear.rotation.z = s * (0.15 + Math.sin(t * 2.3 + s) * 0.06 + (sausageT >= 0 ? 0.35 : 0))));
 
     /* splatter droplets: fly, land, crawl back, merge */
     for (const d of drops) {

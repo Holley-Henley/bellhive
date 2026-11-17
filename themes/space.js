@@ -13,7 +13,7 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const glowColor = (r, g, b) => new THREE.Color(r, g, b);   /* > 1 so bloom picks it up */
 
-  box.title = 'Drag to look around · click to jump to lightspeed';
+  box.title = 'Drag to look around \u00b7 click to jump to lightspeed';
   box.style.position = 'relative';
   /* black space, faded into the page at the edges */
   const mask = 'linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent)';
@@ -210,14 +210,15 @@
   holo.scale.set(11, 2.75, 1);
   far.add(holo);
   const holoBase = new THREE.Vector3();
-  const placeHolo = () => { holoBase.set(0, -6.2, -4); holo.position.copy(holoBase); };
+  const placeHolo = () => { holoBase.set(-2.4, -6.0, -4); holo.position.copy(holoBase); };
   placeHolo();
 
   /* ---------- starfighters ---------- */
   const mats = {
     lightHull: new THREE.MeshStandardMaterial({ color: 0xe6e2da, metalness: 0.15, roughness: 0.5 }),
     stripe: new THREE.MeshStandardMaterial({ color: 0xd2621e, metalness: 0.2, roughness: 0.5 }),
-    glass: new THREE.MeshStandardMaterial({ color: 0x1b2a3a, metalness: 0.9, roughness: 0.15 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0x2a3a4a, metalness: 0.6, roughness: 0.1, transparent: true, opacity: 0.45 }),
+    helmet: new THREE.MeshStandardMaterial({ color: 0xe86a1e, roughness: 0.45 }),
     grey: new THREE.MeshStandardMaterial({ color: 0x7d838c, metalness: 0.3, roughness: 0.45 }),
     darkHull: new THREE.MeshStandardMaterial({ color: 0x5b6270, metalness: 0.3, roughness: 0.45 }),
     darkTrim: new THREE.MeshStandardMaterial({ color: 0x343841, metalness: 0.3, roughness: 0.4 }),
@@ -231,6 +232,8 @@
     const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m; };
     add(new THREE.BoxGeometry(0.28, 0.22, 1.1), mats.lightHull, 0, 0, 0);
     add(new THREE.ConeGeometry(0.16, 0.5, 4).rotateX(Math.PI / 2), mats.lightHull, 0, 0, 0.8, 0, 0, Math.PI / 4);
+    add(new THREE.SphereGeometry(0.065, 12, 10), mats.helmet, 0, 0.15, 0.18);   /* the pilot */
+    add(new THREE.BoxGeometry(0.07, 0.025, 0.02), mats.darkTrim, 0, 0.155, 0.24);
     add(new THREE.SphereGeometry(0.12, 12, 8).scale(1, 0.75, 1.7), mats.glass, 0, 0.13, 0.22);
     add(new THREE.BoxGeometry(0.06, 0.225, 0.5), mats.stripe, 0, 0.001, 0.15);
     for (const s of [-1, 1]) {
@@ -322,6 +325,42 @@
     b.m.lookAt(b.m.position.x + b.vel.x, b.m.position.y + b.vel.y, b.m.position.z + b.vel.z);
     b.m.visible = true; b.life = 0.9; b.target = s.target;
     spark(b.m.position, 0.45);   /* muzzle flash */
+  }
+
+  /* ---------- a laser-sword duel on a floating rock, with a boxy helper robot ---------- */
+  const duel = new THREE.Group(); duel.position.set(4.1, -2.1, 3.9); scene.add(duel);
+  const duelists = [], robot = {};
+  {
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a625a, roughness: 1, flatShading: true });
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), rockMat); rock.scale.set(1.35, 0.45, 1.1); rock.position.y = -0.55; duel.add(rock);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.85, 0.12, 9), rockMat); top.position.y = -0.06; duel.add(top);
+    if (window.BHFigures) {
+      [
+        { x: -0.5, o: { robe: 0x18181c, hat: 'hood', hatColor: 0x18181c, skin: 0xd8b8a0, hair: 'none' }, blade: glowColor(4.5, 0.35, 0.25), ph: 0 },
+        { x: 0.5, o: { robe: 0x8a6a48, hair: 'short', hairColor: 0xb08850, skin: 0xe8c4a4, sleeveColor: 0xd8cbb0 }, blade: glowColor(0.45, 1.3, 4.5), ph: Math.PI },
+      ].forEach((d) => {
+        const p = BHFigures.person(THREE, Object.assign({ height: 0.95 }, d.o));
+        p.root.position.set(d.x, 0, 0); p.root.rotation.y = d.x < 0 ? Math.PI / 2 : -Math.PI / 2; duel.add(p.root);
+        const sword = new THREE.Group(); sword.rotation.x = Math.PI / 2; p.hand.R.add(sword);
+        const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), mats.grey); sword.add(hilt);
+        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.62, 8), new THREE.MeshBasicMaterial({ color: d.blade, toneMapped: false }));
+        blade.position.y = 0.36; sword.add(blade);
+        const tip = new THREE.Object3D(); tip.position.y = 0.55; sword.add(tip);
+        duelists.push({ p, ph: d.ph, tip });
+      });
+    }
+    /* the boxy little helper robot */
+    const r = new THREE.Group(); r.position.set(1.0, 0, 0.75); duel.add(r);
+    const white = new THREE.MeshStandardMaterial({ color: 0xe8e8ec, roughness: 0.4, metalness: 0.2 });
+    const blue = new THREE.MeshStandardMaterial({ color: 0x2a5aa8, roughness: 0.4, metalness: 0.3 });
+    const bodyBox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.3, 0.22), white); bodyBox.position.y = 0.24; r.add(bodyBox);
+    for (const y of [0.16, 0.3]) { const band = new THREE.Mesh(new THREE.BoxGeometry(0.265, 0.035, 0.225), blue); band.position.y = y; r.add(band); }
+    const headBox = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.18), white); headBox.position.y = 0.45; r.add(headBox);
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), new THREE.MeshBasicMaterial({ color: glowColor(0.6, 1.4, 3), toneMapped: false })); eye.position.set(0, 0.45, 0.091); r.add(eye);
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 6), mats.grey); ant.position.set(0.06, 0.57, 0); r.add(ant);
+    const blink = glowSprite(glowColor(3, 0.4, 0.3), 0.08); blink.position.set(0.06, 0.64, 0); r.add(blink);
+    for (const s of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.08), blue); leg.position.set(s * 0.15, 0.09, 0); r.add(leg); const foot = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, 0.12), mats.grey); foot.position.set(s * 0.15, 0.015, 0.01); r.add(foot); }
+    Object.assign(robot, { r, headBox, eye, blink });
   }
 
   /* ---------- lightspeed ---------- */
@@ -486,6 +525,25 @@
         jump = -1; newSystem.done = false; streaks.visible = false; fleet.visible = true; far.visible = true;
         camera.fov = BASE_FOV; camera.updateProjectionMatrix(); flash.style.opacity = '0';
       }
+    }
+
+    /* the duel: swings, parries, sparks where the blades meet; the robot fidgets and beeps */
+    duel.visible = fleet.visible;
+    duel.rotation.y = 0.5 + Math.sin(t * 0.1) * 0.15; duel.position.y = -2.1 + Math.sin(t * 0.4) * 0.15;
+    duelists.forEach((d, i) => {
+      const sw = Math.sin(t * 3.2 + d.ph);
+      d.p.update(t, { armR: -1.5 + sw * 0.85, armRz: 0.25 * Math.sin(t * 1.7 + i), armL: -0.3, lean: 0.08 * sw, walk: 0.15 });
+      d.p.root.position.x = (i ? 0.5 : -0.5) + Math.sin(t * 0.8) * 0.12;
+    });
+    if (duelists.length === 2 && Math.abs(Math.sin(t * 3.2)) < 0.08 && Math.random() < 0.5) {
+      duelists[0].tip.getWorldPosition(P0); duelists[1].tip.getWorldPosition(P1);
+      spark(P0.lerp(P1, 0.5), 0.5);
+    }
+    if (robot.r) {
+      robot.r.rotation.y = -0.6 + Math.sin(t * 0.7) * 0.5;
+      robot.headBox.rotation.y = Math.sin(t * 2.3) * 0.3;
+      robot.r.position.y = Math.abs(Math.sin(t * 6)) * 0.015;
+      robot.blink.material.opacity = Math.sin(t * 5) > 0.3 ? 1 : 0.1;
     }
 
     controls.update();

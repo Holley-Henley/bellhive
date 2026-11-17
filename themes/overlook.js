@@ -15,7 +15,7 @@
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const glowColor = (r, g, b) => new THREE.Color(r, g, b);
 
-  box.title = 'Drag to look around · click... if you dare';
+  box.title = 'Drag to look around \u00b7 click... if you dare';
   const mask = 'linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent)';
   box.style.webkitMaskImage = mask; box.style.maskImage = mask;
   box.style.webkitMaskComposite = 'source-in'; box.style.maskComposite = 'intersect';
@@ -262,6 +262,19 @@
   const st = { z: FAR_Z, target: FAR_Z, stepT: 12, hidden: false };
   man.position.set(0, 0, st.z);
 
+  /* ---------- the twins: identical girls in matching dresses, holding hands ---------- */
+  const twins = window.BHFigures ? [-0.21, 0.21].map((x) => {
+    const p = BHFigures.person(THREE, {
+      height: 1.18, skin: 0xf0d4c0, hair: 'bob', hairColor: 0x6a4a2a, fringe: true,
+      topColor: 0xc4def6, dress: 0xc4def6, sleeveColor: 0xc4def6, bareLegs: true, socks: 0xf6f4ee, shoeColor: 0x161214,
+    });
+    p.root.position.set(x, 0, -10); p.root.visible = false; scene.add(p.root);
+    p.side = x < 0 ? -1 : 1;
+    return p;
+  }) : [];
+  let twinsFor = 0, twinsZ = -10;
+  const showTwins = (z, secs) => { twinsZ = z; twinsFor = secs; };
+
   /* ---------- lights out ---------- */
   let dark = 0, scare = -1, autoFlicker = rand(10, 18);
   function blackout(dur) { dark = Math.max(dark, dur); }
@@ -317,14 +330,19 @@
       const at = (x) => before < x && scare >= x;
       if (at(0.3)) { st.z = st.target = -3.2; man.visible = true; }
       if (at(2.8)) blackout(0.5);
-      if (at(3.1)) man.visible = false;
+      if (at(3.1)) { man.visible = false; showTwins(-9.5, 3.2); }
+      if (at(6.2)) blackout(0.25);
       if (at(6.5)) { st.z = st.target = FAR_Z; man.visible = true; scare = -1; }
     } else {
       /* now and then he takes a few steps closer; a flicker sends him back */
       st.stepT -= dt;
       if (st.stepT <= 0) { st.stepT = rand(9, 16); st.target = Math.min(st.target + rand(1.2, 2), -11); }
       autoFlicker -= dt;
-      if (autoFlicker <= 0) { autoFlicker = rand(14, 24); blackout(rand(0.15, 0.35)); if (st.target > -14 && Math.random() < 0.6) { st.z = st.target = FAR_Z; } }
+      if (autoFlicker <= 0) {
+        autoFlicker = rand(14, 24); blackout(rand(0.15, 0.35));
+        if (st.target > -14 && Math.random() < 0.6) { st.z = st.target = FAR_Z; }
+        else if (twinsFor <= 0 && Math.random() < 0.5) showTwins(rand(-17, -13), rand(3.5, 5));
+      }
     }
     const walking = Math.abs(st.target - st.z) > 0.02;
     st.z += Math.sign(st.target - st.z) * Math.min(Math.abs(st.target - st.z), dt * 0.9);
@@ -333,6 +351,19 @@
     body.rotation.z = walking ? Math.sin(t * 5) * 0.05 : 0;
     body.rotation.y = Math.sin(t * 0.4) * 0.08;
     man.lookAt(camera.position.x, 0, camera.position.z);
+
+    /* the twins: there, perfectly still... then not (they leave on a flicker) */
+    if (twinsFor > 0) {
+      twinsFor -= dt;
+      if (twinsFor <= 0) blackout(0.2);
+    }
+    for (const p of twins) {
+      const on = twinsFor > 0 && dark <= 0;
+      if (on && !p.root.visible) p.root.position.z = twinsZ;
+      if (dark <= 0) p.root.visible = twinsFor > 0;
+      p.root.lookAt(camera.position.x, 0, camera.position.z);
+      p.update(t, p.side < 0 ? { armRz: 0.38, armR: -0.05 } : { armLz: -0.38, armL: -0.05 });
+    }
 
     /* blood drips from the blade */
     nextDrip -= dt;

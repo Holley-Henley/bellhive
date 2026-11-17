@@ -12,7 +12,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-  box.title = 'Drag to look around · click for time dilation';
+  box.title = 'Drag to look around \u00b7 click for time dilation';
   box.style.position = 'relative';
   const mask = 'linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 91%, transparent)';
   box.style.webkitMaskImage = mask; box.style.maskImage = mask;
@@ -184,6 +184,29 @@
   title.scale.set(16, 2, 1); title.renderOrder = 6;
   scene.add(title);
 
+  /* ---------- an astronaut and a slab robot drifting in the foreground ---------- */
+  let astro = null;
+  if (window.BHFigures) {
+    astro = BHFigures.person(THREE, { height: 1.7, stout: true, topColor: 0xeceae6, bottomColor: 0xeceae6, sleeveColor: 0xeceae6, shoeColor: 0xbdbab4, gloves: 0xd8d6d0, hat: 'helmet', hatColor: 0xf2f0ec, hair: 'none' });
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.2), new THREE.MeshStandardMaterial({ color: 0xd8d6d0, roughness: 0.6 }));
+    pack.position.set(0, 0.98, -0.2); astro.body.add(pack);
+    const patch = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16), new THREE.MeshBasicMaterial({ color: 0x3a6ad8 })); patch.position.set(-0.13, 1.05, 0.12); astro.body.add(patch);
+    scene.add(astro.root);
+  }
+  const bot = new THREE.Group(); scene.add(bot);
+  const slabs = [];
+  {
+    const metal = new THREE.MeshStandardMaterial({ color: 0xb4b7bc, metalness: 0.25, roughness: 0.45 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a2d32, metalness: 0.5, roughness: 0.5 });
+    for (let i = 0; i < 4; i++) {
+      const piv = new THREE.Group(); piv.position.set((i - 1.5) * 0.2, 0.8, 0); bot.add(piv);
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.6, 0.34), metal); piv.add(slab);
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(0.182, 0.02, 0.342), dark); seam.position.y = 0.35; piv.add(seam);
+      if (i === 1 || i === 2) { const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.12), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 1.4, 1.0), toneMapped: false })); screen.position.set(0, 0.55, 0.171); piv.add(screen); }
+      slabs.push(piv);
+    }
+  }
+
   /* ---------- controls, click, sizing ---------- */
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, -0.8, 0);
@@ -216,7 +239,7 @@
   const clock = new THREE.Clock();
   let onScreen = true, sim = 0, shipT = 0, earthYears = 0, shipHours = 0;
   new IntersectionObserver(([en]) => (onScreen = en.isIntersecting)).observe(box);
-  const camRight = V(), camUp = V();
+  const camRight = V(), camUp = V(), camFwd = V();
 
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.05);
@@ -247,6 +270,18 @@
     /* title sits below the hole, facing the camera */
     camRight.setFromMatrixColumn(camera.matrixWorld, 0); camUp.setFromMatrixColumn(camera.matrixWorld, 1);
     title.position.set(0, 0, 0).addScaledVector(camUp, -7.6);
+
+    /* the astronaut and the robot stay in the near foreground as the view turns; they slow with time too */
+    camFwd.setFromMatrixColumn(camera.matrixWorld, 2).negate();
+    if (astro) {
+      astro.root.position.copy(camera.position).addScaledVector(camFwd, 13.5).addScaledVector(camRight, -3.9 + Math.sin(sim * 0.2) * 0.3).addScaledVector(camUp, -2.6 + Math.sin(sim * 0.33) * 0.25);
+      astro.root.quaternion.copy(camera.quaternion);
+      astro.root.rotateY(0.55 + Math.sin(sim * 0.15) * 0.35); astro.root.rotateZ(0.35 + Math.sin(sim * 0.21) * 0.15); astro.root.rotateX(-0.2);
+      astro.update(sim, { armL: -0.6 + Math.sin(sim * 0.7) * 0.2, armR: -1.1 + Math.sin(sim * 0.5) * 0.25, armLz: 0.5, armRz: -0.4, walk: 0.15, pace: 1.2 });
+    }
+    bot.position.copy(camera.position).addScaledVector(camFwd, 14).addScaledVector(camRight, 4.0 + Math.sin(sim * 0.17) * 0.3).addScaledVector(camUp, -2.4 + Math.sin(sim * 0.29) * 0.25);
+    bot.quaternion.copy(camera.quaternion); bot.rotateY(-0.45 + Math.sin(sim * 0.12) * 0.4); bot.rotateZ(-0.2); bot.scale.setScalar(1.15);
+    slabs.forEach((s, i) => (s.rotation.x = Math.sin(sim * 0.8 + i * 1.1) * 0.35 * (i % 2 ? 1 : -1)));
 
     controls.update();
     composer.render();

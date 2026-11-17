@@ -56,6 +56,7 @@ function mount(id) {
   mounted = true;
   if (!/^[a-z0-9-]+$/.test(id || '')) id = 'beehive';
   const s = document.createElement('script');
+  s.charset = 'utf-8';   /* this old page has no charset of its own */
   s.src = 'themes/' + id + '.js';
   s.onload = () => {
     const scene = window.BHScenes && window.BHScenes[id];
@@ -65,7 +66,13 @@ function mount(id) {
     } else if (id !== 'beehive') { mounted = false; mount('beehive'); }
   };
   s.onerror = () => { if (id !== 'beehive') { mounted = false; mount('beehive'); } };
-  document.body.appendChild(s);
+  /* the shared character builder (themes/figures.js) goes in first */
+  if (window.BHFigures) { document.body.appendChild(s); return; }
+  const f = document.createElement('script');
+  f.charset = 'utf-8';
+  f.src = 'themes/figures.js';
+  f.onload = f.onerror = () => document.body.appendChild(s);
+  document.body.appendChild(f);
 }
 
 /* index.html tells every frame who is signed in; the home page theme rides along as bhTheme */
