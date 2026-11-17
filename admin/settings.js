@@ -1,6 +1,7 @@
 /* ============================================================
  * Chrisware / bellhive99.com - admin/settings.js
  * ADMIN > Settings
+ *   Home Page Theme    which 3D scene the home page shows and how it rotates (themes/themes.js).
  *   Media (Dropbox)    the read-only Bellhive99_Media app: connect once, see the account,
  *                      disconnect. The site never looks outside /_Media with it.
  *   Audiobook Library  which /_Media folders the Library scans and plays from:
@@ -16,6 +17,7 @@
   const ico = (name) => el('i', { class: 'ti ti-' + name, 'aria-hidden': 'true' });
   let S = null;
   let M = {};          // music function: { settings } or { error }
+  let themeCard = null; // Home Page Theme (themes/themes.js) - same card as on My Account
 
   async function start() {
     try {
@@ -32,7 +34,8 @@
     render();
   }
   function render() {
-    box.replaceChildren(mediaCard(), libraryCard(), musicCard());
+    if (!themeCard) themeCard = BHThemes.card();
+    box.replaceChildren(themeCard, mediaCard(), libraryCard(), musicCard());
   }
 
   /* ---------- Music Library folder (music edge function) ---------- */

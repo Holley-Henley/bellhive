@@ -64,6 +64,7 @@
 <script src="auth/version.js"></script>
 <script src="auth/perms.js"></script>
 <script src="auth/track.js"></script>
+<script src="themes/themes.js"></script>
 <script src="chat/common.js"></script>
 <script src="chat/notify.js"></script>
 <script>
@@ -88,6 +89,8 @@
     $('bh-role').textContent = BH.isAdmin() ? 'Admin' : 'Member';
     /* what this person sees in the left menu (ADMIN > Permissions); live-updated when an admin saves */
     await BH.loadPerms();
+    /* home page 3D theme (themes/themes.js) - sent to INDEXB.HTM with the role */
+    themeData = await BHThemes.load().catch(() => null);
     if (!permsWatched) { permsWatched = true; BH.watchPerms(() => frameWins().forEach(tell)); }
     frameWins().forEach(tell);
     const frames = document.querySelectorAll('.bh-frames iframe');
@@ -128,11 +131,15 @@
      postMessage works even from file://. */
   function roleFor() { return BH.profile ? (BH.isAdmin() ? 'admin' : 'member') : ''; }
   let siteVer = '';
-  function tell(win) { try { win.postMessage({ bhRole: roleFor(), bhVersion: siteVer, bhPerms: BH.user ? BH.perms : null }, '*'); } catch (err) { /* frame gone */ } }
+  let themeData = null;
+  const themeFor = () => (BH.user && themeData ? BHThemes.resolve(themeData.cfg, themeData.mine).id : '');
+  function tell(win) { try { win.postMessage({ bhRole: roleFor(), bhVersion: siteVer, bhPerms: BH.user ? BH.perms : null, bhTheme: themeFor() }, '*'); } catch (err) { /* frame gone */ } }
   const frameWins = () => [...document.querySelectorAll('.bh-frames iframe')].map((f) => f.contentWindow).filter(Boolean);
   window.addEventListener('message', (e) => {
     if (frameWins().includes(e.source) && e.data && e.data.bhAsk === 'role') tell(e.source);
     if (frameWins().includes(e.source) && e.data && e.data.bhNav && BH.user) logMenuClick(e.data.bhNav);
+    /* a theme was changed on My Account / ADMIN > Settings: the next home page visit uses it */
+    if (frameWins().includes(e.source) && e.data && e.data.bhThemeChanged && BH.user) BHThemes.load().then((d) => { themeData = d; }).catch(() => {});
   });
   /* Left-menu clicks -> Audit Log. Workout, Pictures, File Share, Vehicles and the admin pages log themselves when they open. */
   function logMenuClick(n) {

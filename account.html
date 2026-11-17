@@ -16,6 +16,7 @@
   <script src="auth/config.js"></script>
   <script src="auth/auth.js" data-root=""></script>
   <script src="auth/track.js"></script>
+  <script src="themes/themes.js"></script>
   <script>
   (async function () {
     const { el, toast, fmtWhen } = BH.ui;
@@ -27,6 +28,7 @@
     BH.track('account');
     BH.pageOpen('My Account', 'site');
 
+    const themeCard = BHThemes.card();   /* built once; it keeps its own state */
     function render() {
       const p = BH.profile;
       const name = el('input', { value: p.full_name || '' });
@@ -61,7 +63,8 @@
           el('h2', null, 'Security'),
           el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
             el('button', { class: 'bh-btn', type: 'button', onclick: () => BH.ui.passwordModal('change') }, 'Change Password'),
-            el('button', { class: 'bh-btn danger', type: 'button', onclick: async () => { await BH.signOut(); (window.top || window).location.href = 'index.html'; } }, 'Sign Out'))));
+            el('button', { class: 'bh-btn danger', type: 'button', onclick: async () => { await BH.signOut(); (window.top || window).location.href = 'index.html'; } }, 'Sign Out'))),
+        themeCard);
     }
     render();
   })();

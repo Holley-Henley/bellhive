@@ -10,8 +10,8 @@
 <table border="0" cellpadding="3" width="100%">
   <tr>
     <td align="center" valign="top" width="90%">
-      <!-- 3D beehive (replaced the old title + stream.gif, Nov 2026); twice the old 503x453 footprint -->
-      <div id="hive3d" title="Drag to look around &middot; click the hive to stir up a swarm" style="width: 1006px; max-width: 100%; height: 780px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
+      <!-- 3D home page theme (replaced the old title + stream.gif, Nov 2026); twice the old 503x453 footprint -->
+      <div id="hive3d" style="width: 1006px; max-width: 100%; height: 780px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
     </td>
   </tr>
   <tr>
@@ -30,7 +30,8 @@
     <p align="center">&nbsp;
     <p align="center">&nbsp;
 
-<!-- 3D beehive: straw skep, foraging bees, flowers, click-for-swarm. Three.js r160. -->
+<!-- Home page 3D scene. The theme (themes/themes.js) is picked by index.html and sent here by
+     postMessage; each theme is themes/<id>.js. Opened on its own, it shows the beehive. Three.js r160. -->
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -40,427 +41,34 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+const lib = { THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass };
 const box = document.getElementById('hive3d');
-const ASPECT = 453 / 503, CROP = 780 / 1006;
-const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const rand = (a, b) => a + Math.random() * (b - a);
+let mounted = false;
 
-let renderer;
-try {
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-} catch (e) {
-  box.innerHTML = '<p style="font: 28px Georgia, serif; padding-top: 180px;">bell<b>hive</b>99</p>';
-  throw e;
-}
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x000000, 0);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-box.appendChild(renderer.domElement);
-renderer.domElement.style.display = 'block';
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(38, 1 / ASPECT, 0.1, 60);
-camera.position.set(0, 2.7, 7.6);
-
-/* ---------- lights ---------- */
-scene.add(new THREE.HemisphereLight(0xfff3dc, 0x3f5a22, 1.1));
-const sun = new THREE.DirectionalLight(0xffe9c4, 2.6);
-sun.position.set(3.5, 6, 3);
-sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 });
-sun.shadow.bias = -0.0008;
-sun.shadow.radius = 4;
-scene.add(sun);
-const fill = new THREE.DirectionalLight(0xbfd6ff, 0.5);
-fill.position.set(-4, 2, -2);
-scene.add(fill);
-
-/* ---------- procedural textures ---------- */
-function canvasTex(w, h, draw, repeatX = 1, repeatY = 1) {
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  draw(c.getContext('2d'), w, h);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(repeatX, repeatY);
-  t.anisotropy = 4;
-  return t;
-}
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-const strawTex = canvasTex(512, 64, (g, w, h) => {
-  g.fillStyle = '#b48a3c'; g.fillRect(0, 0, w, h);
-  const cols = ['#d9b45a', '#c99c45', '#a37a33', '#e6c46e', '#8f6a2a', '#f0d384'];
-  for (let i = 0; i < 160; i++) {
-    g.strokeStyle = pick(cols); g.globalAlpha = rand(0.35, 0.8); g.lineWidth = rand(0.8, 3);
-    const y = rand(0, h); g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + rand(-3, 3), w * 0.7, y + rand(-3, 3), w, y); g.stroke();
-  }
-  g.globalAlpha = 0.3;
-  for (let i = 0; i < 3; i++) { /* faint bramble bindings wrapped around the coil */
-    const x = i * 170 + rand(-30, 30);
-    g.fillStyle = pick(['#7a5a2a', '#86642f', '#6d4f24']);
-    g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 5, 0); g.lineTo(x + 15, h); g.lineTo(x + 10, h); g.fill();
-  }
-  g.globalAlpha = 1;
-}, 2, 1);
-
-const woodDraw = (base, lines) => (g, w, h) => {
-  g.fillStyle = base; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 70; i++) {
-    g.strokeStyle = pick(lines); g.globalAlpha = rand(0.25, 0.6); g.lineWidth = rand(0.6, 2.2);
-    const y = rand(0, h); g.beginPath(); g.moveTo(0, y);
-    for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.02 + i) * 2.5);
-    g.stroke();
-  }
-  g.globalAlpha = 1;
-};
-const boardTex = canvasTex(256, 256, woodDraw('#9a6a3a', ['#7a4f28', '#b5824d', '#6a4220']), 2, 2);
-const barkTex = canvasTex(256, 256, (g, w, h) => {
-  g.fillStyle = '#5a4230'; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 90; i++) {
-    g.strokeStyle = pick(['#3b2a1c', '#6e5440', '#2c1f15', '#7b6350']); g.globalAlpha = rand(0.4, 0.9); g.lineWidth = rand(1, 5);
-    const x = rand(0, w); g.beginPath(); g.moveTo(x, 0);
-    for (let y = 0; y <= h; y += 24) g.lineTo(x + rand(-3, 3), y);
-    g.stroke();
-  }
-  g.globalAlpha = 1;
-}, 4, 1);
-
-/* ---------- ground: grass patch that fades out into the page ---------- */
-const GROUND_Y = -0.9;
-const grassTex = canvasTex(256, 256, (g, w, h) => {
-  g.fillStyle = '#4f7a2c'; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 2500; i++) {
-    g.fillStyle = pick(['#5f8f35', '#3f6622', '#6c9c3e', '#46702a', '#7da84a']);
-    g.globalAlpha = rand(0.3, 0.8); g.fillRect(rand(0, w), rand(0, h), rand(1, 3), rand(2, 6));
-  }
-  g.globalAlpha = 1;
-  g.globalCompositeOperation = 'destination-in';
-  const rg = g.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w / 2);
-  rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(0.55, 'rgba(0,0,0,0.8)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = rg; g.fillRect(0, 0, w, h);
-});
-grassTex.wrapS = grassTex.wrapT = THREE.ClampToEdgeWrapping;
-const ground = new THREE.Mesh(new THREE.CircleGeometry(2.9, 48),
-  new THREE.MeshStandardMaterial({ map: grassTex, transparent: true, roughness: 1, depthWrite: false }));
-ground.rotation.x = -Math.PI / 2; ground.position.y = GROUND_Y; ground.receiveShadow = true;
-scene.add(ground);
-
-{ /* grass blades */
-  const geo = new THREE.ConeGeometry(0.016, 0.17, 3); geo.translate(0, 0.085, 0);
-  const n = 900, blades = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 0.9 }), n);
-  const m = new THREE.Object3D(), c = new THREE.Color();
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, r = Math.sqrt(rand(0.12, 1)) * 2.5;
-    if (r < 1.0) { i--; continue; }
-    m.position.set(Math.cos(a) * r, GROUND_Y, Math.sin(a) * r);
-    m.rotation.set(rand(-0.35, 0.35), rand(0, 6.3), rand(-0.35, 0.35));
-    const s = rand(0.6, 1.4) * (1 - Math.max(0, r - 1.9) * 1.1); m.scale.set(1, s, 1);
-    m.updateMatrix(); blades.setMatrixAt(i, m.matrix);
-    blades.setColorAt(i, c.setHSL(rand(0.22, 0.3), rand(0.45, 0.65), rand(0.22, 0.38)));
-  }
-  blades.castShadow = true; blades.receiveShadow = true;
-  scene.add(blades);
+function mount(id) {
+  if (mounted) return;
+  mounted = true;
+  if (!/^[a-z0-9-]+$/.test(id || '')) id = 'beehive';
+  const s = document.createElement('script');
+  s.src = 'themes/' + id + '.js';
+  s.onload = () => {
+    const scene = window.BHScenes && window.BHScenes[id];
+    if (scene) scene(box, lib);
+    else if (id !== 'beehive') { mounted = false; mount('beehive'); }
+  };
+  s.onerror = () => { if (id !== 'beehive') { mounted = false; mount('beehive'); } };
+  document.body.appendChild(s);
 }
 
-/* ---------- stump, board, plaque ---------- */
-const clickable = [];
-const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.98, 0.8, 28),
-  new THREE.MeshStandardMaterial({ map: barkTex, roughness: 1 }));
-stump.position.y = (GROUND_Y + -0.11) / 2; stump.castShadow = stump.receiveShadow = true;
-scene.add(stump);
-
-const board = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.12, 2.5),
-  new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.85 }));
-board.position.y = -0.06; board.castShadow = board.receiveShadow = true;
-scene.add(board); clickable.push(board);
-
-const plaqueTex = canvasTex(1024, 320, (g, w, h) => {
-  woodDraw('#8f5e30', ['#6e4522', '#a8723f', '#5e3a1c'])(g, w, h);
-  g.strokeStyle = 'rgba(40,20,5,0.6)'; g.lineWidth = 12; g.strokeRect(16, 16, w - 32, h - 32);
-  const parts = [['bell', '#2a1608', 'bold'], ['hive', '#f0b02a', 'bold'], ['99', '#2a1608', 'bold']];
-  g.font = 'bold 152px Georgia, "Times New Roman", serif'; g.textBaseline = 'middle';
-  const total = parts.reduce((s, p) => s + g.measureText(p[0]).width, 0);
-  let x = (w - total) / 2;
-  for (const [txt, col] of parts) {
-    g.fillStyle = 'rgba(255,235,190,0.35)'; g.fillText(txt, x + 4, h / 2 + 8);   /* carved highlight */
-    g.fillStyle = col; g.fillText(txt, x, h / 2 + 4);
-    x += g.measureText(txt).width;
-  }
-  g.fillStyle = '#2b2b2b';
-  [[52, 52], [w - 52, 52], [52, h - 52], [w - 52, h - 52]].forEach(([nx, ny]) => { g.beginPath(); g.arc(nx, ny, 10, 0, 7); g.fill(); });
-});
-plaqueTex.wrapS = plaqueTex.wrapT = THREE.ClampToEdgeWrapping;
-const plainWood = new THREE.MeshStandardMaterial({ color: 0x7a4e26, roughness: 0.9 });
-/* a plaque on each of the four sides, meeting at the corners like a box around the stump */
-const logoMat = new THREE.MeshStandardMaterial({ map: plaqueTex, roughness: 0.8 });
-const PL_T = 0.06, PL_OUT = 1.15, PL_H = 0.76;
-for (let k = 0; k < 4; k++) {
-  const wide = PL_OUT * 2 - (k % 2 ? PL_T * 2 : 0);   /* side plaques tuck inside the front/back ones */
-  const plaque = new THREE.Mesh(new THREE.BoxGeometry(wide, PL_H, PL_T),
-    [plainWood, plainWood, plainWood, plainWood, logoMat, plainWood]);
-  const a = k * Math.PI / 2;
-  plaque.position.set(Math.sin(a) * (PL_OUT - PL_T / 2), -0.12 - PL_H / 2, Math.cos(a) * (PL_OUT - PL_T / 2));
-  plaque.rotation.y = a;
-  plaque.castShadow = plaque.receiveShadow = true;
-  scene.add(plaque); clickable.push(plaque);
-}
-
-/* ---------- the skep: coiled straw rings ---------- */
-const skep = new THREE.Group(); skep.position.y = 0.075; scene.add(skep);
-const R = 1.0, HS = 1.3, RINGS = 12, TUBE = 0.088;
-const strawMat = new THREE.MeshStandardMaterial({ map: strawTex, bumpMap: strawTex, bumpScale: 1.2, roughness: 0.92 });
-const GAPS = [0.46, 0.36];                        /* entrance cut into the bottom two coils */
-for (let i = 0; i < RINGS; i++) {
-  const th = (i / RINGS) * (Math.PI / 2) * 0.94;
-  const r = R * Math.cos(th), y = HS * Math.sin(th);
-  const gap = GAPS[i] || 0, arc = Math.PI * 2 - gap;
-  const geo = new THREE.TorusGeometry(r, TUBE * (i > RINGS - 3 ? 0.9 : 1), 10, Math.max(24, Math.round(80 * r)), arc);
-  geo.rotateX(Math.PI / 2);
-  const ring = new THREE.Mesh(geo, strawMat);
-  ring.position.y = y;
-  ring.rotation.y = gap ? (arc + Math.PI * 2) / 2 - Math.PI / 2 : rand(0, 6.3);
-  ring.castShadow = ring.receiveShadow = true;
-  skep.add(ring); clickable.push(ring);
-}
-const knob = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), strawMat);
-knob.position.y = HS * Math.sin(Math.PI / 2 * 0.94) + 0.05; knob.scale.y = 0.8; knob.castShadow = true;
-skep.add(knob); clickable.push(knob);
-const innerDark = new THREE.Mesh(new THREE.SphereGeometry(0.93, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-  new THREE.MeshBasicMaterial({ color: 0x140b03, side: THREE.DoubleSide }));
-innerDark.scale.y = HS / R * 0.97; skep.add(innerDark);
-
-const ENTR = V(0, 0.15, 1.04), OUTSIDE = V(0, 0.22, 1.45), INSIDE = V(0, 0.15, 0.55);
-
-/* ---------- flowers ---------- */
-const flowers = [];
-{
-  const palette = [0x9b59d0, 0xf4f1ea, 0xf2c230, 0xe86aa6, 0x6f8fe8, 0xff8a3d];
-  const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d7a2a, roughness: 0.8 });
-  const centerMat = new THREE.MeshStandardMaterial({ color: 0x6b4212, roughness: 1 });
-  const petalGeo = new THREE.SphereGeometry(1, 10, 6); petalGeo.scale(0.075, 0.016, 0.03); petalGeo.translate(0.085, 0, 0);
-  const leafGeo = new THREE.SphereGeometry(1, 8, 6); leafGeo.scale(0.12, 0.012, 0.04); leafGeo.translate(0.12, 0, 0);
-  const angles = [0.35, 1.1, 1.75, 2.5, 3.3, 4.0, 4.75, 5.5, 6.0];
-  angles.forEach((a0, k) => {
-    const a = a0 + rand(-0.15, 0.15), r = rand(1.75, 2.45), h = rand(0.45, 0.8);
-    const f = new THREE.Group(); f.position.set(Math.cos(a) * r, GROUND_Y, Math.sin(a) * r);
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, h, 6), stemMat);
-    stem.position.y = h / 2; stem.castShadow = true; f.add(stem);
-    const leaf = new THREE.Mesh(leafGeo, stemMat); leaf.position.y = h * 0.35; leaf.rotation.set(0, rand(0, 6.3), -0.4); f.add(leaf);
-    const head = new THREE.Group(); head.position.y = h; head.rotation.set(rand(-0.25, 0.25), 0, rand(-0.25, 0.25)); f.add(head);
-    const pm = new THREE.MeshStandardMaterial({ color: palette[k % palette.length], roughness: 0.6, side: THREE.DoubleSide });
-    const np = 9 + (k % 3) * 2;
-    for (let p = 0; p < np; p++) {
-      const petal = new THREE.Mesh(petalGeo, pm); petal.rotation.set(0, (p / np) * Math.PI * 2, rand(0.1, 0.3));
-      petal.castShadow = true; head.add(petal);
-    }
-    const ctr = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), centerMat); ctr.scale.y = 0.6; head.add(ctr);
-    scene.add(f);
-    flowers.push({ top: f.position.clone().add(V(0, h + 0.07, 0)) });
-  });
-}
-
-/* ---------- bees ---------- */
-const beeGeo = {
-  abdomen: (() => { const g = new THREE.SphereGeometry(1, 18, 14); g.scale(0.48, 0.78, 0.46); g.rotateX(Math.PI / 2); g.translate(0, -0.02, -0.82); return g; })(),
-  thorax: new THREE.SphereGeometry(0.42, 14, 12),
-  head: (() => { const g = new THREE.SphereGeometry(0.3, 12, 10); g.scale(1, 0.9, 0.8); g.translate(0, -0.04, 0.55); return g; })(),
-  eye: (() => { const g = new THREE.SphereGeometry(0.13, 8, 6); g.scale(0.6, 1, 0.8); return g; })(),
-  antenna: (() => { const g = new THREE.CylinderGeometry(0.018, 0.018, 0.45, 4); g.translate(0, 0.22, 0); return g; })(),
-  leg: (() => { const g = new THREE.CylinderGeometry(0.02, 0.012, 0.5, 4); g.translate(0, -0.25, 0); return g; })(),
-  wing: (() => {
-    const s = new THREE.Shape(); s.absellipse(0.55, 0, 0.6, 0.22, 0, Math.PI * 2);
-    const g = new THREE.ShapeGeometry(s, 16); g.rotateX(-Math.PI / 2); g.rotateY(0.45); return g;
-  })(),
-};
-const stripeTex = canvasTex(64, 256, (g, w, h) => {
-  const bands = [[0, 0.2, '#d89a1e'], [0.2, 0.31, '#1d140c'], [0.31, 0.46, '#e2a52a'], [0.46, 0.58, '#1d140c'], [0.58, 0.69, '#d4951c'], [0.69, 1, '#1a120a']];
-  for (const [a, b, c] of bands) { g.fillStyle = c; g.fillRect(0, a * h, w, (b - a) * h + 1); }
-  for (let i = 0; i < 900; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(255,220,150,0.18)' : 'rgba(0,0,0,0.18)'; g.fillRect(rand(0, w), rand(0, h), 1, rand(2, 5)); }
-});
-const furMat = new THREE.MeshPhysicalMaterial({ color: 0x9a5f1c, roughness: 1, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffc25a) });
-const beeMats = {
-  abdomen: new THREE.MeshPhysicalMaterial({ map: stripeTex, roughness: 0.75, sheen: 0.8, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffd27a) }),
-  thorax: furMat,
-  dark: new THREE.MeshStandardMaterial({ color: 0x1b130c, roughness: 0.6 }),
-  eye: new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.25, metalness: 0.2 }),
-  wing: new THREE.MeshPhysicalMaterial({ color: 0xeaf4ff, transparent: true, opacity: 0.32, roughness: 0.15, side: THREE.DoubleSide, depthWrite: false, iridescence: 1, iridescenceIOR: 1.4 }),
-};
-const BEE_SCALE = 0.05;
-function makeBee() {
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(beeGeo.abdomen, beeMats.abdomen), new THREE.Mesh(beeGeo.thorax, beeMats.thorax), new THREE.Mesh(beeGeo.head, beeMats.dark));
-  for (const sx of [-1, 1]) {
-    const e = new THREE.Mesh(beeGeo.eye, beeMats.eye); e.position.set(sx * 0.2, 0.02, 0.62); g.add(e);
-    const an = new THREE.Mesh(beeGeo.antenna, beeMats.dark); an.position.set(sx * 0.08, 0.12, 0.78); an.rotation.set(0.9, 0, -sx * 0.35); g.add(an);
-    for (let k = 0; k < 3; k++) {
-      const l = new THREE.Mesh(beeGeo.leg, beeMats.dark); l.position.set(sx * 0.2, -0.25, 0.2 - k * 0.22); l.rotation.set(0.5 - k * 0.35, 0, sx * 0.5); g.add(l);
-    }
-  }
-  const wings = [];
-  for (const sx of [-1, 1]) {
-    const pivot = new THREE.Group(); pivot.position.set(sx * 0.12, 0.36, 0.05);
-    const w = new THREE.Mesh(beeGeo.wing, beeMats.wing); w.scale.x = sx; w.renderOrder = 2;
-    pivot.add(w); g.add(pivot); wings.push({ pivot, sx });
-  }
-  g.scale.setScalar(BEE_SCALE);
-  scene.add(g);
-  return { obj: g, wings, flap: rand(0, 6.3), prev: new THREE.Vector3(), q: new THREE.Quaternion() };
-}
-const look = new THREE.Object3D(), d = new THREE.Vector3();
-function orient(b, pos, ease) {
-  d.subVectors(pos, b.prev);
-  if (d.lengthSq() > 1e-9) {
-    look.position.copy(pos); look.lookAt(pos.x + d.x, pos.y + d.y * 0.6, pos.z + d.z);
-    b.obj.quaternion.slerp(look.quaternion, ease);
-  }
-  b.prev.copy(pos); b.obj.position.copy(pos);
-}
-function flapWings(b, t, speed = 1) {
-  const a = Math.sin(t * 55 * speed + b.flap) * 0.7 + 0.15;
-  for (const w of b.wings) w.pivot.rotation.z = a * w.sx;
-}
-
-/* orbiting bees: lazy loops around the hive */
-const orbiters = Array.from({ length: 16 }, () => Object.assign(makeBee(), {
-  r: rand(1.45, 2.3), h: rand(0.35, 1.9), w: rand(0.35, 0.8) * (Math.random() < 0.5 ? -1 : 1), a: rand(0, 6.3), ph: rand(0, 6.3),
-}));
-
-/* foragers: hive -> flower -> hover -> hive -> rest inside */
-const tmp = new THREE.Vector3();
-const seg = {
-  lin: (a, b, dur) => ({ dur, at: (s, out) => out.lerpVectors(a, b, s) }),
-  bez: (a, c, b, speed) => {
-    const dur = (a.distanceTo(c) + c.distanceTo(b)) * 0.85 / speed;
-    return { dur, at: (s, out) => { const u = 1 - s; return out.set(0, 0, 0).addScaledVector(a, u * u).addScaledVector(c, 2 * u * s).addScaledVector(b, s * s); } };
-  },
-  hover: (p, dur, ph) => ({ dur, hover: true, at: (s, out, t) => out.set(p.x + Math.sin(t * 3.1 + ph) * 0.035, p.y + Math.sin(t * 4.7 + ph) * 0.02, p.z + Math.cos(t * 2.6 + ph) * 0.035) }),
-  rest: (dur) => ({ dur, hidden: true, at: (s, out) => out.copy(INSIDE) }),
-};
-const ease = (s) => s * s * (3 - 2 * s);
-function planTrip(b) {
-  const F = pick(flowers).top.clone().add(V(rand(-0.03, 0.03), 0, rand(-0.03, 0.03)));
-  const sp = rand(1.0, 1.5);
-  const mid = tmp.lerpVectors(OUTSIDE, F, 0.5);
-  const c1 = V(mid.x + rand(-0.8, 0.8), mid.y + rand(0.7, 1.4), mid.z + rand(-0.8, 0.8));
-  const c2 = V(mid.x + rand(-0.8, 0.8), mid.y + rand(0.5, 1.2), mid.z + rand(-0.8, 0.8));
-  return [
-    seg.lin(INSIDE, ENTR, 0.5), seg.lin(ENTR, OUTSIDE, 0.4), seg.bez(OUTSIDE, c1, F, sp),
-    seg.hover(F, rand(1.5, 4), rand(0, 6)), seg.bez(F, c2, OUTSIDE, sp),
-    seg.lin(OUTSIDE, ENTR, 0.4), seg.lin(ENTR, INSIDE, 0.5), seg.rest(rand(1, 5)),
-  ];
-}
-const foragers = Array.from({ length: 14 }, (_, i) => {
-  const b = makeBee(); b.segs = planTrip(b);
-  b.i = i % 2 ? 3 : 7; b.t = rand(0, b.segs[b.i].dur);   /* start some at flowers, some resting */
-  return b;
-});
-
-/* swarm: click the hive and a cloud of bees pours out, circles, and goes home */
-const swarm = Array.from({ length: 36 }, () => Object.assign(makeBee(), {
-  off: V(rand(-1, 1), rand(-0.6, 0.6), rand(-1, 1)).normalize().multiplyScalar(rand(0.15, 0.75)), delay: rand(0, 1), spin: rand(1.5, 3),
-}));
-swarm.forEach((b) => (b.obj.visible = false));
-let swarmT = -1;
-const SWARM_DUR = 9;
-function swarmCenter(t, out) {
-  const a = Math.PI / 2 + t * 0.8;
-  return out.set(Math.cos(a) * 1.7, 1.5 + Math.sin(t * 1.3) * 0.35, Math.sin(a) * 1.7);
-}
-
-/* ---------- controls + click ---------- */
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, -0.55, 0);
-Object.assign(controls, { enableZoom: false, enablePan: false, enableDamping: true, dampingFactor: 0.08, autoRotate: true, autoRotateSpeed: 0.7, minPolarAngle: 0.55, maxPolarAngle: 1.42 });
-controls.update();
-let resumeTimer;
-controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeTimer); renderer.domElement.style.cursor = 'grabbing'; });
-controls.addEventListener('end', () => { resumeTimer = setTimeout(() => (controls.autoRotate = true), 4000); renderer.domElement.style.cursor = ''; });
-
-const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-let down = null;
-function hitHive(e) {
-  const r = renderer.domElement.getBoundingClientRect();
-  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ndc, camera);
-  return ray.intersectObjects(clickable, false).length > 0;
-}
-renderer.domElement.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
-renderer.domElement.addEventListener('pointerup', (e) => {
-  if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 6 && hitHive(e) && swarmT < 0) swarmT = 0;
-  down = null;
-});
-renderer.domElement.addEventListener('pointermove', (e) => {
-  if (!down) renderer.domElement.style.cursor = hitHive(e) ? 'pointer' : '';
-});
-
-/* ---------- sizing ---------- */
-function resize() {
-  /* frame is composed at 1006x906 but the empty strip under the grass is trimmed off */
-  const w = box.clientWidth || 1006, full = Math.round(w * ASPECT), h = Math.round(w * CROP);
-  box.style.height = h + 'px';
-  renderer.setSize(w, h);
-  camera.aspect = w / full;
-  camera.setViewOffset(w, full, 0, 0, w, h);
-}
-new ResizeObserver(resize).observe(box);
-resize();
-
-/* ---------- loop (pauses when scrolled off screen) ---------- */
-const clock = new THREE.Clock();
-let onScreen = true;
-new IntersectionObserver(([en]) => (onScreen = en.isIntersecting)).observe(box);
-const P = new THREE.Vector3(), C = new THREE.Vector3();
-
-renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.05);
-  if (!onScreen) return;
-  const t = clock.elapsedTime;
-
-  for (const b of orbiters) {
-    b.a += b.w * dt;
-    const r = b.r + Math.sin(t * 0.7 + b.ph) * 0.3;
-    P.set(Math.cos(b.a) * r + Math.sin(t * 2.3 + b.ph) * 0.06, b.h + Math.sin(t * 0.9 + b.ph) * 0.25 + Math.sin(t * 3.7 + b.ph) * 0.04, Math.sin(b.a) * r);
-    orient(b, P, 0.15); flapWings(b, t);
-  }
-
-  for (const b of foragers) {
-    b.t += dt;
-    while (b.t >= b.segs[b.i].dur) {
-      b.t -= b.segs[b.i].dur; b.i++;
-      if (b.i >= b.segs.length) { b.segs = planTrip(b); b.i = 0; }
-    }
-    const s = b.segs[b.i];
-    s.at(s.hover ? b.t / s.dur : ease(b.t / s.dur), P, t);
-    b.obj.visible = !s.hidden;
-    if (s.hover) { b.obj.position.copy(P); b.prev.copy(P); } else orient(b, P, 0.2);
-    flapWings(b, t, s.hover ? 1.2 : 1);
-  }
-
-  if (swarmT >= 0) {
-    swarmT += dt;
-    for (const b of swarm) {
-      const lt = swarmT - b.delay;
-      if (lt < 0 || lt > SWARM_DUR) { b.obj.visible = false; continue; }
-      swarmCenter(lt, C);
-      const ang = lt * b.spin;
-      P.set(b.off.x * Math.cos(ang) - b.off.z * Math.sin(ang), b.off.y + Math.sin(lt * 4 + b.spin) * 0.08, b.off.x * Math.sin(ang) + b.off.z * Math.cos(ang)).add(C);
-      if (lt < 1.4) P.lerpVectors(ENTR, P, ease(lt / 1.4));
-      else if (lt > SWARM_DUR - 1.6) P.lerp(INSIDE, ease((lt - (SWARM_DUR - 1.6)) / 1.6));
-      if (!b.obj.visible) { b.prev.copy(ENTR); b.obj.visible = true; }
-      orient(b, P, 0.25); flapWings(b, t, 1.1);
-    }
-    if (swarmT > SWARM_DUR + 1.2) { swarmT = -1; swarm.forEach((b) => (b.obj.visible = false)); }
-  }
-
-  controls.update();
-  renderer.render(scene, camera);
-});
+/* index.html tells every frame who is signed in; the home page theme rides along as bhTheme */
+window.addEventListener('message', (e) => { if (e.data && typeof e.data.bhTheme === 'string' && e.data.bhTheme) mount(e.data.bhTheme); });
+try { if (window.parent !== window) window.parent.postMessage({ bhAsk: 'role' }, '*'); } catch (err) { /* no parent */ }
+setTimeout(() => mount('beehive'), window.parent !== window ? 4000 : 0);
 </script>
 </body>
 </html>
