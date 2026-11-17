@@ -11,7 +11,7 @@
   <tr>
     <td align="center" valign="top" width="90%">
       <!-- 3D beehive (replaced the old title + stream.gif, Nov 2026); twice the old 503x453 footprint -->
-      <div id="hive3d" title="Drag to look around &middot; click the hive to stir up a swarm" style="width: 1006px; max-width: 100%; height: 906px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
+      <div id="hive3d" title="Drag to look around &middot; click the hive to stir up a swarm" style="width: 1006px; max-width: 100%; height: 780px; margin: 0 auto; cursor: grab; touch-action: pan-y;"></div>
     </td>
   </tr>
   <tr>
@@ -42,7 +42,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const box = document.getElementById('hive3d');
-const ASPECT = 453 / 503;
+const ASPECT = 453 / 503, CROP = 780 / 1006;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -366,7 +366,7 @@ function swarmCenter(t, out) {
 
 /* ---------- controls + click ---------- */
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.05, 0);
+controls.target.set(0, -0.55, 0);
 Object.assign(controls, { enableZoom: false, enablePan: false, enableDamping: true, dampingFactor: 0.08, autoRotate: true, autoRotateSpeed: 0.7, minPolarAngle: 0.55, maxPolarAngle: 1.42 });
 controls.update();
 let resumeTimer;
@@ -392,10 +392,12 @@ renderer.domElement.addEventListener('pointermove', (e) => {
 
 /* ---------- sizing ---------- */
 function resize() {
-  const w = box.clientWidth || 1006, h = Math.round(w * ASPECT);
+  /* frame is composed at 1006x906 but the empty strip under the grass is trimmed off */
+  const w = box.clientWidth || 1006, full = Math.round(w * ASPECT), h = Math.round(w * CROP);
   box.style.height = h + 'px';
   renderer.setSize(w, h);
-  camera.aspect = w / h; camera.updateProjectionMatrix();
+  camera.aspect = w / full;
+  camera.setViewOffset(w, full, 0, 0, w, h);
 }
 new ResizeObserver(resize).observe(box);
 resize();
