@@ -22,6 +22,9 @@
     { id: 'space', name: 'Star Wars', blurb: 'Starfighter dogfight around a battle station and a ringed planet. Click for the jump to lightspeed.' },
     { id: 'shire', name: 'Lord of the Rings', blurb: 'Hill village with round doors at sunset, chimney smoke and fireflies. Click for fireworks.' },
     { id: 'goo', name: 'John Dies at the End', blurb: 'A living black goo in a jar under a flickering bulb and a half-broken neon sign. Click to poke it.' },
+    { id: 'blackhole', name: 'Interstellar', blurb: 'A black hole bending its glowing disk around itself, a ring ship drifting past. Click for time dilation.' },
+    { id: 'flycity', name: 'The Fifth Element', blurb: 'Hazy canyon city with lanes of flying cars and a yellow taxi weaving through. Click and the taxi dives.' },
+    { id: 'overlook', name: 'The Shining', blurb: 'A long hotel hallway, hexagon carpet, a tricycle - and a man with an axe at the far end. Click if you dare.' },
   ];
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   const known = (id) => !!(id && byId[id]);
