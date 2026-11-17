@@ -21,6 +21,7 @@
     { id: 'beehive', name: 'Classic Beehive', blurb: 'Straw skep on a stump, bees foraging at the flowers. Click the hive for a swarm.' },
     { id: 'space', name: 'Star Wars', blurb: 'Starfighter dogfight around a battle station and a ringed planet. Click for the jump to lightspeed.' },
     { id: 'shire', name: 'Lord of the Rings', blurb: 'Hill village with round doors at sunset, chimney smoke and fireflies. Click for fireworks.' },
+    { id: 'goo', name: 'John Dies at the End', blurb: 'A living black goo in a jar under a flickering bulb and a half-broken neon sign. Click to poke it.' },
   ];
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   const known = (id) => !!(id && byId[id]);
