@@ -133,6 +133,23 @@
   let siteVer = '';
   let themeData = null;
   const themeFor = () => (BH.user && themeData ? BHThemes.resolve(themeData.cfg, themeData.mine).id : '');
+  let shownTheme = '';
+  let switching = false;
+  async function nextTheme() {
+    if (switching) return;
+    switching = true;
+    try {
+      const ids = BHThemes.list.map((t) => t.id);
+      const cur = shownTheme || themeFor();
+      const next = ids[(ids.indexOf(cur) + 1) % ids.length];
+      await BHThemes.saveMine(next);
+      themeData.mine = next;
+      shownTheme = '';
+      document.querySelector('.bh-frames iframe[name=main]').src = 'INDEXB.HTM';
+      BH.ui.toast('Your theme: ' + BHThemes.byId[next].name + ' · My Account to go back to the site\'s', 'ok');
+    } catch (err) { BH.ui.toast(err.message, 'error'); }
+    switching = false;
+  }
   function tell(win) { try { win.postMessage({ bhRole: roleFor(), bhVersion: siteVer, bhPerms: BH.user ? BH.perms : null, bhTheme: themeFor() }, '*'); } catch (err) { /* frame gone */ } }
   const frameWins = () => [...document.querySelectorAll('.bh-frames iframe')].map((f) => f.contentWindow).filter(Boolean);
   window.addEventListener('message', (e) => {
@@ -140,6 +157,9 @@
     if (frameWins().includes(e.source) && e.data && e.data.bhNav && BH.user) logMenuClick(e.data.bhNav);
     /* a theme was changed on My Account / ADMIN > Settings: the next home page visit uses it */
     if (frameWins().includes(e.source) && e.data && e.data.bhThemeChanged && BH.user) BHThemes.load().then((d) => { themeData = d; }).catch(() => {});
+    if (frameWins().includes(e.source) && e.data && typeof e.data.bhThemeShown === 'string') shownTheme = e.data.bhThemeShown;
+    /* the star in the left menu: step this person to the next theme and show it */
+    if (frameWins().includes(e.source) && e.data && e.data.bhNextTheme && BH.user && themeData) nextTheme();
   });
   /* Left-menu clicks -> Audit Log. Workout, Pictures, File Share, Vehicles and the admin pages log themselves when they open. */
   function logMenuClick(n) {

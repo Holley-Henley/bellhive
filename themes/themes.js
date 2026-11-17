@@ -20,6 +20,7 @@
   const list = [
     { id: 'beehive', name: 'Classic Beehive', blurb: 'Straw skep on a stump, bees foraging at the flowers. Click the hive for a swarm.' },
     { id: 'space', name: 'Star Wars', blurb: 'Starfighter dogfight around a battle station and a ringed planet. Click for the jump to lightspeed.' },
+    { id: 'shire', name: 'Lord of the Rings', blurb: 'Hill village with round doors at sunset, chimney smoke and fireflies. Click for fireworks.' },
   ];
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   const known = (id) => !!(id && byId[id]);

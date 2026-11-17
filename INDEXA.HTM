@@ -21,7 +21,7 @@ td font[face="Century Gothic"] { font-size: 13px !important; }
     <tr>
       <td width="183" height="585" valign="top">
     <p align="center" class="bh-keep"><font face="Tahoma"><map name="FPMap0">
-    <area href="index.html" shape="rect" coords="0, 4, 187, 173" target="_top"></map><img border="0" src="directions.gif" usemap="#FPMap0" width="175" height="174"></font></p>
+    <area id="bh-star" href="index.html" shape="rect" coords="0, 4, 187, 173" target="_top" title="Change my home page theme"></map><img border="0" src="directions.gif" usemap="#FPMap0" width="175" height="174"></font></p>
     <p align="center" class="bh-keep" style="line-height: 12px; margin-top: -10px; margin-bottom: 10px"><font face="Tahoma" size="1" color="#5f5747"><span id="bh-ver" title="Site version">&nbsp;</span></font></p>
 
     <!-- Each line with data-perm="<key>" is shown or hidden per user (ADMIN > Permissions, auth/perms.js).
@@ -112,6 +112,16 @@ td font[face="Century Gothic"] { font-size: 13px !important; }
     if (e.data.bhPerms) applyPerms(e.data.bhPerms);
   });
   try { window.parent.postMessage({ bhAsk: "role" }, "*"); } catch (e) {}
+  /* The star switches this person's home page theme to the next one (index.html saves it as
+     their own pick, like My Account > Just for Me). Not signed in / no parent: it stays a Home link. */
+  var signedIn = false;
+  window.addEventListener("message", function (e) { if (e.source === window.parent && e.data && e.data.bhRole) signedIn = true; });
+  var star = document.getElementById("bh-star");
+  if (star) star.addEventListener("click", function (e) {
+    if (!signedIn || window.parent === window) return;
+    e.preventDefault();
+    try { window.parent.postMessage({ bhNextTheme: true }, "*"); } catch (err) {}
+  });
   /* Every menu click is reported to the home page, which writes it to the Audit Log. */
   document.addEventListener("click", function (e) {
     var a = e.target;

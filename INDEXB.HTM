@@ -58,8 +58,10 @@ function mount(id) {
   s.src = 'themes/' + id + '.js';
   s.onload = () => {
     const scene = window.BHScenes && window.BHScenes[id];
-    if (scene) scene(box, lib);
-    else if (id !== 'beehive') { mounted = false; mount('beehive'); }
+    if (scene) {
+      scene(box, lib);
+      try { if (window.parent !== window) window.parent.postMessage({ bhThemeShown: id }, '*'); } catch (err) { /* no parent */ }
+    } else if (id !== 'beehive') { mounted = false; mount('beehive'); }
   };
   s.onerror = () => { if (id !== 'beehive') { mounted = false; mount('beehive'); } };
   document.body.appendChild(s);
