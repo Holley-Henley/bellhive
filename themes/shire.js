@@ -373,42 +373,11 @@
   let show = [];
   function launch() {
     const r = rockets.find((x) => x.t < 0); if (!r) return;
-    if (wizard) {   /* the fireworks fly from the wizard's staff */
-      staffTip.getWorldPosition(tmpTip);
-      r.from = tmpTip.clone(); r.to = V(rand(-4, 4), rand(6.5, 9.5), rand(-3.5, 0.5));
-    } else { r.from = V(rand(-3.5, 3.5), 2, rand(-3.5, -1.5)); r.to = V(r.from.x + rand(-1.5, 1.5), rand(6.5, 9), r.from.z + rand(-1, 1)); }
+    r.from = V(rand(-3.5, 3.5), 2, rand(-3.5, -1.5)); r.to = V(r.from.x + rand(-1.5, 1.5), rand(6.5, 9), r.from.z + rand(-1, 1));
     r.t = 0; r.dur = rand(1.0, 1.4);
     r.s.visible = true;
   }
 
-  /* ---------- villagers and the wizard ---------- */
-  const tmpTip = V();
-  const villager = (o) => BHFigures.person(THREE, Object.assign({
-    height: 0.95, stout: true, bigHead: true, shortLegs: true, hair: 'curly', barefoot: true, bigFeet: true, shorts: true,
-    skin: 0xebc4a2, topColor: 0xece2cc,
-  }, o));
-  let walker = null, waver = null, gazer = null, wizard = null, staffTip = null, staffGlow = null;
-  if (window.BHFigures) {
-    walker = villager({ hairColor: 0x6a4020, vest: 0x3f6a2a, bottomColor: 0x6a4a2a });
-    waver = villager({ hairColor: 0xa0702a, vest: 0x8a3a24, bottomColor: 0x4a3a2a, height: 0.9 });
-    gazer = villager({ hairColor: 0x3a2412, vest: 0xc9a23a, bottomColor: 0x5a4632 });
-    [walker, waver, gazer].forEach((p) => scene.add(p.root));
-    const fd = cuts[0];
-    waver.root.position.set(fd.dx * (fd.r0 + 1.0) + 0.55, fd.floor, fd.dz * (fd.r0 + 1.0));
-    gazer.root.position.set(-2.6, H(-2.6, 4.4), 4.4); gazer.root.rotation.y = 2.6;
-
-    wizard = BHFigures.person(THREE, { height: 1.95, robe: 0x8c8c92, hat: 'pointy', hatColor: 0x86868c, beard: 0xdcdcdc, hair: 'long', hairColor: 0xcfcfcf, skin: 0xe6c4a8 });
-    wizard.root.position.set(-1.7, H(-1.7, 6.9), 6.9); wizard.root.rotation.y = 0.35; scene.add(wizard.root);
-    const staff = new THREE.Group(); wizard.hand.R.add(staff);
-    const wood = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.85 });
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 2.1, 8), wood); pole.position.y = 0.35; staff.add(pole);
-    const crook = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.025, 8, 16, Math.PI * 1.3), wood); crook.position.set(0.06, 1.42, 0); staff.add(crook);
-    staffTip = new THREE.Object3D(); staffTip.position.set(0, 1.45, 0); staff.add(staffTip);
-    staffGlow = glowSprite(glowColor(2.2, 2.0, 1.4), 0.6, 0); staffTip.add(staffGlow);
-    wizard.staff = staff;
-    [walker, waver, gazer, wizard].forEach((p) => p.root.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }));
-  }
-  let raise = 0;
   function burst(p) {
     const b = bursts.find((x) => x.t < 0) || bursts[0];
     const col = b.pts.geometry.attributes.color.array, c = new THREE.Color(), c2 = new THREE.Color();
@@ -438,7 +407,6 @@
   renderer.domElement.addEventListener('pointerup', (e) => {
     if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 6 && !show.length) {
       for (let i = 0; i < 9; i++) show.push(0.7 + i * rand(0.3, 0.45));
-      raise = 4.8;
     }
     down = null;
   });
@@ -499,22 +467,6 @@
       f.s.material.opacity = Math.pow(Math.max(0, Math.sin(t * f.blink + f.ph)), 3);
     }
 
-    /* villagers: one strolls the path, one waves from the door, one watches the sky; the wizard leans on his staff */
-    if (walker) {
-      const u = (t * 0.09) % 2, back = u > 1, k = back ? 2 - u : u;
-      const z = 4.3 + 4.0 * k, x = pathX(z) + 0.18;
-      walker.root.position.set(x, H(x, z), z); walker.root.rotation.y = back ? Math.PI : 0;
-      walker.update(t, { walk: 1, pace: 9 });
-      waver.root.lookAt(camera.position.x, waver.root.position.y, camera.position.z);
-      waver.update(t, { armR: -2.75, armRz: 0.35 + Math.sin(t * 7) * 0.3, tilt: Math.sin(t * 1.2) * 0.08 });
-      gazer.update(t, { look: Math.sin(t * 0.25) * 0.4, armL: -0.2, armR: -0.2 });
-      raise = Math.max(0, raise - dt);
-      const rk = smooth(0, 0.5, raise);
-      wizard.update(t, { armR: -0.35 - 2.35 * rk, armRz: 0.05, armL: 0.05, look: Math.sin(t * 0.2) * 0.2, lean: -0.05 * rk });
-      wizard.staff.rotation.x = -wizard.arms.R.rotation.x;
-      staffGlow.material.opacity = rk * (0.75 + Math.random() * 0.25);
-      staffGlow.scale.setScalar(0.5 + rk * 0.5);
-    }
 
     if (show.length) {
       showClock += dt;

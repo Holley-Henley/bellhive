@@ -1,9 +1,9 @@
 /* bellhive99.com - home page theme: The Shining (the hotel hallway)
  * A long hotel corridor: bold hexagon-pattern carpet, patterned wallpaper over dark wainscot,
  * rows of numbered doors (one is 237), flickering sconces, a child's tricycle, an elevator at the
- * far end - and a man with feathered seventies hair, wide collar and flares, holding an axe with
- * a red-stained, dripping blade. He stands at the far end and inches closer. Click: the lights
- * cut out; when they come back he is much closer... and then he is gone.
+ * far end - and nobody in it. A small red ball rolls slowly out of the dark toward you and stops.
+ * Click: the lights flicker, the ball comes back, Room 237 creaks open with light spilling out,
+ * and the ball rolls out of it toward you before the door slams.
  * bellhive99 is the brass plaque on the nearest door. Stylized, original design.
  * Loaded by INDEXB.HTM (see themes/themes.js).
  */
@@ -135,16 +135,17 @@
     for (const s of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(s * (W / 2 - 0.03), 0, z); g.rotation.y = -s * Math.PI / 2; scene.add(g);
       const frame = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.3, 0.06), trimMat); frame.position.y = 1.15; g.add(frame);
-      const door = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.15, 0.08), doorMat); door.position.set(0, 1.08, 0.03); g.add(door);
-      for (const py of [0.55, 1.5]) { const panel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.75, 0.02), woodMat); panel.position.set(0, py, 0.08); g.add(panel); }
-      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), brassMat); knob.position.set(0.36, 1.0, 0.11); g.add(knob);
+      const hinge = new THREE.Group(); hinge.position.set(0.475, 0, 0); g.add(hinge);   /* doors swing on the edge farther down the hall */
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.15, 0.08), doorMat); door.position.set(-0.475, 1.08, 0.03); hinge.add(door);
+      for (const py of [0.55, 1.5]) { const panel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.75, 0.02), woodMat); panel.position.set(-0.475, py, 0.08); hinge.add(panel); }
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), brassMat); knob.position.set(-0.835, 1.0, 0.11); hinge.add(knob);
       const isLogo = k === 0 && s === -1;
       const label = isLogo ? 'bellhive99' : String(num);
       const plate = new THREE.Mesh(new THREE.BoxGeometry(isLogo ? 0.62 : 0.28, isLogo ? 0.17 : 0.1, 0.015),
         [brassMat, brassMat, brassMat, brassMat, new THREE.MeshStandardMaterial({ map: isLogo ? plateTex('bellhive99', 512, 140, 84) : plateTex(label), metalness: 0.6, roughness: 0.35 }), brassMat]);
-      plate.position.set(0, 1.68, 0.12); g.add(plate);
+      plate.position.set(-0.475, 1.68, 0.12); hinge.add(plate);
       if (!isLogo) num += 2;
-      doors.push({ g, label });
+      doors.push({ g, hinge, label, s, z });
     }
   }
 
@@ -196,87 +197,44 @@
     trike.traverse((m) => { if (m.isMesh) m.castShadow = true; });
   }
 
-  /* ---------- him ---------- */
-  const man = new THREE.Group(); scene.add(man);
-  const body = new THREE.Group(); man.add(body);
-  {
-    const skin = new THREE.MeshStandardMaterial({ color: 0xd8a888, roughness: 0.7 });
-    const hair = new THREE.MeshStandardMaterial({ color: 0x4a2c18, roughness: 0.8 });
-    const jacket = new THREE.MeshStandardMaterial({ color: 0x6a4a30, roughness: 0.85 });
-    const shirt = new THREE.MeshStandardMaterial({ color: 0xc9b07a, roughness: 0.8 });
-    const pants = new THREE.MeshStandardMaterial({ color: 0x3a2a24, roughness: 0.9 });
-    const shoe = new THREE.MeshStandardMaterial({ color: 0x1a120c, roughness: 0.5 });
-    const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, parent = body) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); parent.add(m); return m; };
-    for (const s of [-1, 1]) {   /* flared trousers */
-      add(new THREE.CylinderGeometry(0.085, 0.15, 0.9, 12), pants, s * 0.11, 0.47, 0);
-      add(new THREE.BoxGeometry(0.14, 0.07, 0.28), shoe, s * 0.11, 0.035, 0.05);
-    }
-    add(new THREE.BoxGeometry(0.42, 0.62, 0.24), jacket, 0, 1.22, 0);
-    add(new THREE.BoxGeometry(0.18, 0.5, 0.02), shirt, 0, 1.27, 0.125);
-    for (const s of [-1, 1]) {   /* big seventies collar over the lapels */
-      add(new THREE.BoxGeometry(0.16, 0.05, 0.12), shirt, s * 0.1, 1.5, 0.11, 0.6, 0, s * 0.5);
-      add(new THREE.BoxGeometry(0.08, 0.36, 0.02), jacket, s * 0.15, 1.33, 0.13, 0, 0, s * 0.2);
-    }
-    add(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 10), skin, 0, 1.57, 0);
-    const head = add(new THREE.SphereGeometry(0.115, 20, 16), skin, 0, 1.72, 0.01); head.scale.set(0.95, 1.1, 1);
-    add(new THREE.SphereGeometry(0.125, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 1.75, -0.005);   /* crown */
-    for (const s of [-1, 1]) {   /* feathered wings over the ears + sideburns */
-      const wing = add(new THREE.SphereGeometry(0.08, 14, 10), hair, s * 0.1, 1.71, -0.02); wing.scale.set(0.7, 1.15, 1.25);
-      add(new THREE.BoxGeometry(0.025, 0.09, 0.03), hair, s * 0.105, 1.65, 0.05);
-      add(new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: 0x0a0806 }), s * 0.04, 1.735, 0.115);
-      add(new THREE.BoxGeometry(0.035, 0.008, 0.01), hair, s * 0.04, 1.765, 0.112, 0, 0, s * -0.35);   /* arched eyebrows */
-    }
-    add(new THREE.SphereGeometry(0.11, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.3), hair, 0, 1.79, 0.035, -0.5);   /* fringe */
-    add(new THREE.TorusGeometry(0.035, 0.007, 6, 16, Math.PI), new THREE.MeshBasicMaterial({ color: 0xf0ece0 }), 0, 1.665, 0.11, 0, 0, Math.PI);   /* a grin */
-    /* arms holding the axe across the body */
-    const limb = (a, b, r0, r1, mat) => {   /* a tapered cylinder from point a to point b */
-      const dir = new THREE.Vector3().subVectors(b, a), len = dir.length();
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, len, 10), mat);
-      m.position.copy(a).addScaledVector(dir, 0.5);
-      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-      body.add(m);
-      const joint = new THREE.Mesh(new THREE.SphereGeometry(r0, 10, 8), mat); joint.position.copy(a); body.add(joint);
-    };
-    const L = { sh: V(-0.22, 1.47, 0), el: V(-0.3, 1.2, 0.16), ha: V(-0.1, 1.38, 0.32) };
-    const R = { sh: V(0.22, 1.47, 0), el: V(0.29, 1.12, 0.12), ha: V(0.08, 1.0, 0.33) };
-    for (const arm of [L, R]) {
-      limb(arm.sh, arm.el, 0.062, 0.055, jacket);
-      limb(arm.el, arm.ha, 0.055, 0.045, jacket);
-      add(new THREE.SphereGeometry(0.048, 10, 8), skin, arm.ha.x, arm.ha.y, arm.ha.z);
-    }
+  /* ---------- the little red ball ---------- */
+  const ballTex = canvasTex(256, 128, (g, w, h) => {
+    g.fillStyle = '#c0141a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#e8d8b0'; g.fillRect(0, h * 0.44, w, h * 0.12);   /* a pale stripe so you can see it roll */
+    for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(0,0,0,${rand(0.02, 0.08)})`; g.fillRect(rand(0, w), rand(0, h), 3, 3); }
+  });
+  ballTex.wrapS = ballTex.wrapT = THREE.ClampToEdgeWrapping;
+  const BALL_R = 0.14;
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 24, 16), new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.35 }));
+  ball.castShadow = true; scene.add(ball);
+  const ballShadow = new THREE.Mesh(new THREE.CircleGeometry(BALL_R * 1.1, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, depthWrite: false }));
+  ballShadow.rotation.x = -Math.PI / 2; scene.add(ballShadow);
+  /* a roll: from (x0,z0) to (x1,z1), easing to a stop, with a slight drift */
+  const roll = { from: V(), to: V(), t: 0, dur: 1, rest: 0, on: false };
+  const axis = V(), step = V();
+  function startRoll(x0, z0, x1, z1, dur) {
+    roll.from.set(x0, BALL_R, z0); roll.to.set(x1, BALL_R, z1); roll.t = 0; roll.dur = dur; roll.on = true;
+    ball.position.copy(roll.from); ball.visible = true;
   }
-  const axe = new THREE.Group(); axe.position.set(-0.01, 1.2, 0.33); axe.rotation.set(0, 0, 0.75); body.add(axe);
-  const blood = new THREE.MeshStandardMaterial({ color: 0x7a0606, roughness: 0.25, metalness: 0.1 });
-  {
-    axe.add(new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.95, 8), new THREE.MeshStandardMaterial({ color: 0x8a6034, roughness: 0.7 })));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.13, 0.03), new THREE.MeshStandardMaterial({ color: 0x8a8c90, metalness: 0.8, roughness: 0.35 })); head.position.set(-0.06, 0.42, 0); axe.add(head);
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.2, 0.012), blood); blade.position.set(-0.13, 0.42, 0); axe.add(blade);
-    const smear = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.033), blood); smear.position.set(-0.04, 0.4, 0); axe.add(smear);
-  }
-  const drips = Array.from({ length: 6 }, () => { const d = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), blood); d.visible = false; scene.add(d); return { d, v: 0 }; });
-  const puddle = new THREE.Mesh(new THREE.CircleGeometry(0.12, 20), blood); puddle.rotation.x = -Math.PI / 2; puddle.position.y = 0.005; scene.add(puddle);
-  let nextDrip = 0.5;
-  const bladeTip = new THREE.Object3D(); bladeTip.position.set(-0.17, 0.33, 0); axe.add(bladeTip);
+  const FAR_Z = -24;
+  startRoll(rand(-0.6, 0.2), FAR_Z, rand(-0.5, 0.0), rand(-2.6, -1.8), 26);
 
-  const FAR_Z = -21;
-  const st = { z: FAR_Z, target: FAR_Z, stepT: 12, hidden: false };
-  man.position.set(0, 0, st.z);
-
-  /* ---------- the twins: identical girls in matching dresses, holding hands ---------- */
-  const twins = window.BHFigures ? [-0.21, 0.21].map((x) => {
-    const p = BHFigures.person(THREE, {
-      height: 1.18, skin: 0xf0d4c0, hair: 'bob', hairColor: 0x6a4a2a, fringe: true,
-      topColor: 0xc4def6, dress: 0xc4def6, sleeveColor: 0xc4def6, bareLegs: true, socks: 0xf6f4ee, shoeColor: 0x161214,
-    });
-    p.root.position.set(x, 0, -10); p.root.visible = false; scene.add(p.root);
-    p.side = x < 0 ? -1 : 1;
-    return p;
-  }) : [];
-  let twinsFor = 0, twinsZ = -10;
-  const showTwins = (z, secs) => { twinsZ = z; twinsFor = secs; };
-
+  /* ---------- room 237: the door creaks open, light spills out ---------- */
+  const d237 = doors.find((d) => d.label === '237');
+  const roomGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 2.15), new THREE.MeshBasicMaterial({ map: canvasTex(64, 256, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#5a6a50'); gr.addColorStop(0.55, '#d8e8c0'); gr.addColorStop(1, '#f6f0d8');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  }), color: glowColor(1, 1, 1), toneMapped: false, transparent: true, opacity: 0 }));
+  roomGlow.position.set(0, 1.08, 0.034); d237.g.add(roomGlow);
+  const spill = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.8), new THREE.MeshBasicMaterial({ map: canvasTex(64, 128, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(230,245,200,0.9)'); gr.addColorStop(1, 'rgba(230,245,200,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  }), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  spill.rotation.x = -Math.PI / 2; spill.position.set(0, 0.012, 0.9); d237.g.add(spill);
+  const roomLight = new THREE.PointLight(0xd8f0c0, 0, 6, 1.6); roomLight.position.set(0, 1.4, 0.6); d237.g.add(roomLight);
+  let open237 = 0, want237 = 0;
   /* ---------- lights out ---------- */
-  let dark = 0, scare = -1, autoFlicker = rand(10, 18);
+  let dark = 0, scare = -1, autoFlicker = rand(16, 26);
   function blackout(dur) { dark = Math.max(dark, dur); }
 
   /* ---------- controls, click, sizing ---------- */
@@ -311,7 +269,7 @@
   const clock = new THREE.Clock();
   let onScreen = true;
   new IntersectionObserver(([en]) => (onScreen = en.isIntersecting)).observe(box);
-  const sph = new THREE.Spherical(), off = V(), tip = V();
+  const sph = new THREE.Spherical(), off = V();
 
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.05);
@@ -324,61 +282,48 @@
       off.setFromSpherical(sph); camera.position.copy(controls.target).add(off);
     }
 
-    /* the click: out - he's close - out - he's gone - he's back at the end */
+    /* the click: lights out - the ball is back at the far end - room 237 creaks open, the ball
+       rolls out of it toward you - the door slams */
     if (scare >= 0) {
       const before = scare; scare += dt;
       const at = (x) => before < x && scare >= x;
-      if (at(0.3)) { st.z = st.target = -3.2; man.visible = true; }
-      if (at(2.8)) blackout(0.5);
-      if (at(3.1)) { man.visible = false; showTwins(-9.5, 3.2); }
-      if (at(6.2)) blackout(0.25);
-      if (at(6.5)) { st.z = st.target = FAR_Z; man.visible = true; scare = -1; }
+      if (at(0.3)) startRoll(rand(-0.5, 0.1), FAR_Z, rand(-0.4, 0.1), -2.2, 9);
+      if (at(2.4)) want237 = 1;
+      if (at(4.2)) { const dx = d237.s * (W / 2 - 0.45); startRoll(dx, d237.z + 0.35, rand(-0.2, 0.3), -1.9, 7); }
+      if (at(9.0)) { want237 = 0; }
+      if (at(9.6)) { blackout(0.15); scare = -1; }
     } else {
-      /* now and then he takes a few steps closer; a flicker sends him back */
-      st.stepT -= dt;
-      if (st.stepT <= 0) { st.stepT = rand(9, 16); st.target = Math.min(st.target + rand(1.2, 2), -11); }
+      /* the ball sits a while once it stops; a flicker and it is back in the dark at the far end */
       autoFlicker -= dt;
-      if (autoFlicker <= 0) {
-        autoFlicker = rand(14, 24); blackout(rand(0.15, 0.35));
-        if (st.target > -14 && Math.random() < 0.6) { st.z = st.target = FAR_Z; }
-        else if (twinsFor <= 0 && Math.random() < 0.5) showTwins(rand(-17, -13), rand(3.5, 5));
+      if (!roll.on) roll.rest += dt;
+      if (autoFlicker <= 0 || roll.rest > 9) {
+        autoFlicker = rand(16, 26); blackout(rand(0.2, 0.4)); roll.rest = 0;
+        startRoll(rand(-0.6, 0.2), FAR_Z, rand(-0.5, 0.1), rand(-2.6, -1.8), rand(20, 28));
       }
     }
-    const walking = Math.abs(st.target - st.z) > 0.02;
-    st.z += Math.sign(st.target - st.z) * Math.min(Math.abs(st.target - st.z), dt * 0.9);
-    man.position.set(Math.sin(t * 0.3) * 0.05, 0, st.z);
-    body.position.y = walking ? Math.abs(Math.sin(t * 5)) * 0.04 : Math.sin(t * 1.6) * 0.008;
-    body.rotation.z = walking ? Math.sin(t * 5) * 0.05 : 0;
-    body.rotation.y = Math.sin(t * 0.4) * 0.08;
-    man.lookAt(camera.position.x, 0, camera.position.z);
 
-    /* the twins: there, perfectly still... then not (they leave on a flicker) */
-    if (twinsFor > 0) {
-      twinsFor -= dt;
-      if (twinsFor <= 0) blackout(0.2);
+    /* the ball rolls, slowing to a stop; it hides while the lights are out at the start of a new roll */
+    if (roll.on) {
+      roll.t += dt;
+      const k = Math.min(1, roll.t / roll.dur), e = 1 - Math.pow(1 - k, 2.2);
+      step.copy(ball.position);
+      ball.position.lerpVectors(roll.from, roll.to, e);
+      ball.position.x += Math.sin(e * 9) * 0.05 * (1 - e);
+      step.subVectors(ball.position, step);
+      const d = step.length();
+      if (d > 1e-5) { axis.set(step.z, 0, -step.x).normalize(); ball.rotateOnWorldAxis(axis, d / BALL_R); }
+      if (k >= 1) { roll.on = false; roll.rest = 0; }
     }
-    for (const p of twins) {
-      const on = twinsFor > 0 && dark <= 0;
-      if (on && !p.root.visible) p.root.position.z = twinsZ;
-      if (dark <= 0) p.root.visible = twinsFor > 0;
-      p.root.lookAt(camera.position.x, 0, camera.position.z);
-      p.update(t, p.side < 0 ? { armRz: 0.38, armR: -0.05 } : { armLz: -0.38, armL: -0.05 });
-    }
+    ballShadow.position.set(ball.position.x + 0.02, 0.006, ball.position.z + 0.02);
 
-    /* blood drips from the blade */
-    nextDrip -= dt;
-    if (nextDrip <= 0 && man.visible) {
-      nextDrip = rand(0.8, 2.2);
-      const d = drips.find((x) => !x.d.visible);
-      if (d) { bladeTip.getWorldPosition(tip); d.d.position.copy(tip); d.v = 0; d.d.visible = true; }
-    }
-    for (const d of drips) {
-      if (!d.d.visible) continue;
-      d.v += 9.8 * dt; d.d.position.y -= d.v * dt;
-      if (d.d.position.y <= 0.01) d.d.visible = false;
-    }
-    bladeTip.getWorldPosition(tip); puddle.position.x = tip.x; puddle.position.z = tip.z; puddle.visible = man.visible;
-
+    /* room 237's door swings open and shut; the light inside breathes */
+    open237 += (want237 - open237) * Math.min(1, dt * (want237 ? 0.9 : 6));
+    d237.hinge.rotation.y = 1.35 * open237 + Math.sin(t * 13) * 0.01 * open237;
+    const glow = open237 * (0.85 + Math.sin(t * 3.1) * 0.08) * (dark > 0 ? 0.15 : 1);
+    roomGlow.material.opacity = Math.min(1, open237 * 3) * (dark > 0 ? 0.2 : 1);
+    roomGlow.material.color.setRGB(1.2 * glow + 0.2, 1.3 * glow + 0.2, 1.1 * glow + 0.2);
+    spill.material.opacity = 0.55 * glow;
+    roomLight.intensity = 6 * glow;
     /* lights: a gentle buzz, flickers, blackouts */
     dark = Math.max(0, dark - dt);
     const buzz = dark > 0 ? 0.02 : (Math.random() < 0.015 ? rand(0.3, 0.7) : 1);

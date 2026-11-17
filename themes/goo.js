@@ -305,17 +305,138 @@
     const d = shadowy(new THREE.Mesh(new THREE.SphereGeometry(s, 16, 10), gooMat)); d.scale.y = 0.35; d.position.set(x, s * 0.3, z); scene.add(d); drips.push(d);
   }
 
-  /* ---------- two slackers in hoodies behind the table ---------- */
-  const dudes = window.BHFigures ? [
-    { x: -2.1, z: -1.55, ry: 0.5, o: { hair: 'messy', hairColor: 0x3a2616, topColor: 0x3d4a33, hoodie: true, bottomColor: 0x34465e, skin: 0xe2b896 } },
-    { x: 2.15, z: -1.5, ry: -0.55, o: { hair: 'short', hairColor: 0x1a1410, hat: 'cap', hatColor: 0x2a2a30, topColor: 0x6a2a2a, hoodie: true, bottomColor: 0x2e3440, skin: 0xc89a78 } },
-  ].map((d) => {
-    const p = BHFigures.person(THREE, Object.assign({ height: 3.5 }, d.o));
-    p.root.position.set(d.x, -1.6, d.z); p.root.rotation.y = d.ry; scene.add(p.root);
-    p.root.traverse((m) => { if (m.isMesh) m.receiveShadow = true; });
-    return p;
-  }) : [];
+  /* ---------- the meat monster: sausage links, a whole ham for a head, sausage fingers ---------- */
+  const meat = (() => {
+    const M = (color, rough = 0.38, extra = {}) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: rough }, extra));
+    const skin = M(0x8a3418, 0.32), skinDark = M(0x5e2210, 0.4), frank = M(0xc0583a, 0.34), string = M(0xe8dcc0, 0.9);
+    const knotMat = M(0x4a1a0c, 0.5);
+    const salamiTex = canvasTex(128, 128, (g, w, h) => {
+      g.fillStyle = '#9a2a2a'; g.beginPath(); g.arc(64, 64, 62, 0, 7); g.fill();
+      for (let i = 0; i < 70; i++) { g.fillStyle = Math.random() < 0.75 ? '#f0d8c8' : '#5a1414'; g.beginPath(); g.arc(64 + rand(-50, 50), 64 + rand(-50, 50), rand(2, 5), 0, 7); g.fill(); }
+      g.strokeStyle = '#5a1a12'; g.lineWidth = 5; g.beginPath(); g.arc(64, 64, 61, 0, 7); g.stroke();
+    });
+    const hamTex = canvasTex(256, 256, (g, w, h) => {   /* glazed, scored in diamonds, studded with cloves */
+      g.fillStyle = '#a4481e'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(${rand(120, 200)},${rand(50, 90)},20,${rand(0.1, 0.3)})`; g.fillRect(rand(0, w), rand(0, h), rand(4, 18), rand(2, 8)); }
+      g.strokeStyle = 'rgba(70,20,6,0.8)'; g.lineWidth = 3;
+      for (let k = -h; k < w + h; k += 32) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + h, h); g.stroke(); g.beginPath(); g.moveTo(k, h); g.lineTo(k + h, 0); g.stroke(); }
+      g.fillStyle = '#2a1208';
+      for (let x = 0; x < w; x += 32) for (let y = 0; y < h; y += 32) { g.beginPath(); g.arc(x + 16, y, 3, 0, 7); g.fill(); }
+    }, 2, 1);
+    const baconTex = canvasTex(64, 256, (g, w, h) => {
+      const bands = ['#b8433a', '#f2d2c0', '#c24e44', '#a2342e', '#f4dccc', '#b03c34'];
+      bands.forEach((c, i) => { g.fillStyle = c; g.fillRect((i * w) / bands.length, 0, w / bands.length + 1, h); });
+      for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(90,20,10,${rand(0.1, 0.3)})`; g.fillRect(rand(0, w), rand(0, h), rand(2, 6), rand(4, 20)); }
+    });
+    const hamMat = new THREE.MeshPhysicalMaterial({ map: hamTex, roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.25 });
+    const salamiMat = M(0xffffff, 0.45, { map: salamiTex });
+    const baconMat = new THREE.MeshStandardMaterial({ map: baconTex, roughness: 0.5, side: THREE.DoubleSide });
+    const bone = M(0xf1ead8, 0.55);
+
+    const add = (p, geo, mat, x = 0, y = 0, z = 0) => { const m = shadowy(new THREE.Mesh(geo, mat)); m.position.set(x, y, z); p.add(m); return m; };
+    const link = (p, r, len, mat, y0) => {   /* one sausage link hanging down from its pivot, with a tied knot at the top */
+      add(p, new THREE.CapsuleGeometry(r, len, 6, 14), mat, 0, y0 - len / 2 - r * 0.6, 0);
+      add(p, new THREE.SphereGeometry(r * 0.45, 8, 6), knotMat, 0, y0, 0);
+    };
+
+    const root = new THREE.Group(); root.position.set(2.1, -1.6, -1.35); root.rotation.y = -0.5; root.scale.setScalar(1.1); scene.add(root);
+    const body = new THREE.Group(); body.position.y = 1.55; root.add(body);   /* hips */
+
+    /* hot-dog legs, two links each, meatball feet */
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const hip = new THREE.Group(); hip.position.set(s * 0.2, 0, 0); body.add(hip);
+      link(hip, 0.13, 0.5, frank, 0);
+      const knee = new THREE.Group(); knee.position.y = -0.78; hip.add(knee);
+      link(knee, 0.12, 0.45, frank, 0);
+      add(knee, new THREE.SphereGeometry(0.17, 14, 10), skinDark, 0, -0.74, 0.06).scale.set(1, 0.55, 1.35);
+      legs.push(hip);
+    }
+
+    /* torso: a bundle of kielbasa tied with butcher's string, salami-slice buttons */
+    const torso = new THREE.Group(); torso.position.y = 0.05; body.add(torso);
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      const m = add(torso, new THREE.CapsuleGeometry(0.13, 0.75, 6, 14), i % 2 ? skin : skinDark, Math.cos(a) * 0.24, 0.55, Math.sin(a) * 0.2);
+      m.rotation.set(Math.sin(a) * 0.08, 0, Math.cos(a) * -0.06);
+    }
+    for (const y of [0.3, 0.85]) add(torso, new THREE.TorusGeometry(0.385, 0.018, 6, 30).rotateX(Math.PI / 2), string, 0, y, 0).scale.set(1, 1, 0.9);
+    for (const [y, x] of [[0.42, 0.02], [0.62, -0.03], [0.82, 0.03]]) {
+      const sl = add(torso, new THREE.CylinderGeometry(0.11, 0.11, 0.03, 24).rotateX(Math.PI / 2), [salamiMat, skinDark, salamiMat], x, y, 0.37);
+      sl.material = [skinDark, salamiMat, skinDark];
+    }
+
+    /* bacon draped over each shoulder */
+    function baconStrip() {
+      const geo = new THREE.PlaneGeometry(0.3, 1.0, 1, 24), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const v = pos.getY(i) / 1.0 + 0.5, a = (v - 0.5) * Math.PI * 1.05;   /* along the strip, arched over the shoulder */
+        const r = 0.24 + Math.sin(v * 22) * 0.02;
+        pos.setXYZ(i, pos.getX(i), Math.cos(a) * r, Math.sin(a) * r);
+      }
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    /* arms: two links each, a meatball palm and five sausage fingers */
+    const arms = [];
+    for (const s of [-1, 1]) {
+      const sh = new THREE.Group(); sh.position.set(s * 0.42, 1.05, 0); torso.add(sh);
+      const strip = add(sh, baconStrip(), baconMat, 0, -0.02, 0); strip.castShadow = false;
+      add(sh, new THREE.SphereGeometry(0.14, 12, 10), skinDark);
+      link(sh, 0.1, 0.42, skin, -0.05);
+      const elbow = new THREE.Group(); elbow.position.y = -0.68; sh.add(elbow);
+      link(elbow, 0.09, 0.38, skin, 0);
+      const hand = new THREE.Group(); hand.position.y = -0.62; elbow.add(hand);
+      add(hand, new THREE.SphereGeometry(0.13, 14, 10), skinDark).scale.set(1, 0.75, 0.6);
+      const fingers = [];
+      for (let f = 0; f < 5; f++) {
+        const thumb = f === 4;
+        const piv = new THREE.Group();
+        if (thumb) { piv.position.set(-s * 0.11, -0.01, 0.05); piv.rotation.z = -s * 0.9; }
+        else { piv.position.set((f - 1.5) * 0.06, -0.07, 0); piv.rotation.z = (f - 1.5) * 0.12; }
+        hand.add(piv);
+        const len = thumb ? 0.12 : [0.17, 0.21, 0.19, 0.14][f];
+        add(piv, new THREE.CapsuleGeometry(0.032, len, 4, 10), frank, 0, -len / 2 - 0.03, 0);
+        add(piv, new THREE.SphereGeometry(0.016, 6, 5), knotMat, 0, -len - 0.06, 0);   /* the tied end */
+        fingers.push(piv);
+      }
+      arms.push({ s, sh, elbow, hand, fingers });
+    }
+
+    /* the head: a whole glazed ham, bone sticking out, olive eyes, a crooked mouth */
+    const neck = new THREE.Group(); neck.position.y = 1.18; torso.add(neck);
+    add(neck, new THREE.CapsuleGeometry(0.1, 0.12, 4, 12), skinDark, 0, 0.08, 0);
+    const head = new THREE.Group(); head.position.y = 0.2; neck.add(head);
+    const prof = [];
+    for (let i = 0; i <= 16; i++) { const v = i / 16; prof.push(new THREE.Vector2(Math.max(0.001, Math.sin(Math.PI * Math.pow(v, 0.8)) * 0.38 * (1 - v * 0.35)), v * 0.82)); }
+    const ham = add(head, new THREE.LatheGeometry(prof, 32), hamMat, 0, 0, 0); ham.scale.set(1, 1, 0.9);
+    add(head, new THREE.CylinderGeometry(0.2, 0.22, 0.04, 30), M(0xe7a0a0, 0.5), 0, 0.0, 0);   /* the pink cut face underneath */
+    add(head, new THREE.CylinderGeometry(0.04, 0.045, 0.32, 10), bone, 0.04, 0.92, 0).rotation.z = -0.2;
+    for (const x of [-0.04, 0.04]) add(head, new THREE.SphereGeometry(0.05, 10, 8), bone, 0.08 + x, 1.08, 0);
+    const olive = M(0x6a7a2a, 0.25, { envMap, envMapIntensity: 0.6 }), pimento = M(0xd8261c, 0.35);
+    const eyes = [];
+    for (const s of [-1, 1]) {
+      const eg = new THREE.Group(); eg.position.set(s * 0.12, 0.42, 0.29); head.add(eg);
+      add(eg, new THREE.SphereGeometry(0.075, 16, 12), olive).scale.set(1, 0.85, 0.85);
+      add(eg, new THREE.SphereGeometry(0.035, 10, 8), pimento, 0, 0, 0.055);
+      eyes.push(eg);
+    }
+    const mouth = add(head, new THREE.TorusGeometry(0.11, 0.022, 6, 16, Math.PI), M(0x2a0a04, 0.6), 0.01, 0.25, 0.3);
+    mouth.rotation.set(0, 0, Math.PI + 0.12);
+    return { root, body, torso, legs, arms, neck, head, eyes, mouth };
+  })();
   let flinch = 0;
+
+  /* the dog barks at the meat monster: a little "woof!" bubble */
+  const woofTex = canvasTex(256, 128, (g, w, h) => {
+    g.font = 'bold 64px "Comic Sans MS", "Chalkboard SE", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 10; g.strokeStyle = '#111'; g.strokeText('woof!', w / 2, h / 2);
+    g.fillStyle = '#fff6d0'; g.fillText('woof!', w / 2, h / 2);
+  });
+  const woof = new THREE.Sprite(new THREE.SpriteMaterial({ map: woofTex, transparent: true, opacity: 0, depthWrite: false }));
+  woof.scale.set(0.7, 0.35, 1); scene.add(woof);
+  let barkT = -1, barkWait = 0;
 
   /* ---------- the dog: paws up on the table, eyeing the sausage ---------- */
   const dog = new THREE.Group(); dog.position.set(-0.85, 0, 1.78); scene.add(dog);
@@ -348,7 +469,7 @@
   });
   let blackout = 0;
   function poke() {
-    quake = 1; blackout = 0.7; flinch = 1.6; duck = 1.8;
+    quake = 1; blackout = 0.7; flinch = 1.6; duck = 1.8; barkWait = 0.9;
     eyes.forEach((e) => { e.want = 1; e.timer = rand(2.5, 4); });
     drops.forEach((d) => {
       const a = rand(0, Math.PI * 2);
@@ -463,14 +584,43 @@
     }
     drips.forEach((d, i) => (d.scale.y = 0.33 + 0.04 * Math.sin(t * 1.5 + i)));
 
-    /* the guys stare at the jar; a poke makes them jump back, hands up */
+    /* the meat monster sways, reaches for the jar with wriggling sausage fingers; a poke makes it
+       rear back, arms up, fingers splayed */
     flinch = Math.max(0, flinch - dt);
-    const fk = smooth(0, 0.25, flinch) ;
-    dudes.forEach((p, i) => {
-      const idle = i === 0 ? { armL: -0.55, armR: -0.55, armLz: 0.55, armRz: -0.55 } : { armR: -0.9 + Math.sin(t * 0.8) * 0.08, armL: 0.05 };
-      p.update(t, fk > 0.01 ? { armL: -2.7 * fk, armR: -2.7 * fk, armLz: 0.2, armRz: -0.2, lean: -0.25 * fk, look: 0 } : Object.assign({ look: Math.sin(t * 0.3 + i * 2) * 0.25, tilt: Math.sin(t * 0.45 + i) * 0.08 }, idle));
-      p.root.position.z = (i === 0 ? -1.55 : -1.5) - 0.35 * fk;
-    });
+    const fk = smooth(0, 0.3, flinch);
+    {
+      const mm = meat, sway = Math.sin(t * 0.9);
+      mm.body.rotation.z = sway * 0.04; mm.body.position.y = 1.55 + Math.abs(Math.sin(t * 1.8)) * 0.02;
+      mm.torso.rotation.x = 0.12 - 0.35 * fk; mm.torso.rotation.y = Math.sin(t * 0.4) * 0.12;
+      mm.legs.forEach((l, i) => (l.rotation.x = Math.sin(t * 0.9 + i * Math.PI) * 0.04));
+      mm.arms.forEach(({ s, sh, elbow, hand, fingers }) => {
+        const reach = s < 0;   /* the left arm reaches toward the goo; the right one dangles and drums */
+        const idleX = reach ? -0.95 + Math.sin(t * 0.7) * 0.15 : -0.1 + Math.sin(t * 1.1) * 0.06;
+        sh.rotation.x = idleX * (1 - fk) - 2.6 * fk;
+        sh.rotation.z = s * (reach ? -0.35 : 0.12) * (1 - fk) + s * 0.45 * fk;
+        elbow.rotation.x = (reach ? -0.45 : -0.25) * (1 - fk) - 0.2 * fk;
+        hand.rotation.y = Math.sin(t * 0.8 + s) * 0.3;
+        fingers.forEach((p, i) => {
+          const wig = Math.sin(t * (reach ? 5 : 7) + i * 1.1) * 0.35;
+          p.rotation.x = (0.4 + wig) * (1 - fk) - 0.15 * fk;
+          if (i < 4) p.rotation.z = (i - 1.5) * (0.12 + 0.25 * fk);
+        });
+      });
+      mm.neck.rotation.z = Math.sin(t * 0.6) * 0.1; mm.head.rotation.x = 0.15 - 0.3 * fk;
+      mm.head.rotation.y = Math.sin(t * 0.35) * 0.25 - 0.25;
+      mm.eyes.forEach((e) => (e.scale.y = Math.random() < 0.004 ? 0.1 : 1 + 0.3 * fk));
+      mm.mouth.scale.set(1 + 0.3 * fk, 1 + 1.5 * fk, 1);
+    }
+    /* woof! (after a poke, and now and then on its own) */
+    if (barkWait > 0) { barkWait -= dt; if (barkWait <= 0) barkT = 0; }
+    if (barkT < 0 && Math.random() < dt / 12) barkT = 0;
+    if (barkT >= 0) {
+      barkT += dt;
+      const bk = barkT < 0.35 ? barkT / 0.35 : barkT < 1.0 ? 1 : 1 - (barkT - 1.0) / 0.4;
+      woof.material.opacity = Math.max(0, bk);
+      woof.position.set(-0.55, 0.95 + barkT * 0.2, 1.55);
+      if (barkT > 1.4) { barkT = -1; woof.material.opacity = 0; }
+    }
 
     /* the dog watches the sausage, ears flop; ducks when the goo pops */
     duck = Math.max(0, duck - dt);

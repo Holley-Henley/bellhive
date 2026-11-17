@@ -1,7 +1,7 @@
 /* bellhive99.com - home page theme: Star Wars (classic space opera)
  * Starfighter dogfight in deep space: light fighters (orange engines, red bolts) and dark delta
  * fighters (green engines, green bolts) chase each other around a ring battle station and a
- * ringed planet. Hits spark, ships explode and warp back in. The bellhive99 logo is a flickering
+ * ringed planet. Hits spark, ships explode and warp back in. Two droids bicker on a floating rock. The bellhive99 logo is a flickering
  * hologram projected from the station. Click anywhere for the jump to lightspeed.
  * All ships and the station are original designs. Loaded by INDEXB.HTM (see themes/themes.js).
  */
@@ -327,42 +327,95 @@
     spark(b.m.position, 0.45);   /* muzzle flash */
   }
 
-  /* ---------- a laser-sword duel on a floating rock, with a boxy helper robot ---------- */
+  /* ---------- two droids on a floating rock: a fussy gold one and a little dome-headed one ---------- */
   const duel = new THREE.Group(); duel.position.set(4.1, -2.1, 3.9); scene.add(duel);
-  const duelists = [], robot = {};
+  const gold = {}, dome = {};
   {
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a625a, roughness: 1, flatShading: true });
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), rockMat); rock.scale.set(1.35, 0.45, 1.1); rock.position.y = -0.55; duel.add(rock);
     const top = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.85, 0.12, 9), rockMat); top.position.y = -0.06; duel.add(top);
-    if (window.BHFigures) {
-      [
-        { x: -0.5, o: { robe: 0x18181c, hat: 'hood', hatColor: 0x18181c, skin: 0xd8b8a0, hair: 'none' }, blade: glowColor(4.5, 0.35, 0.25), ph: 0 },
-        { x: 0.5, o: { robe: 0x8a6a48, hair: 'short', hairColor: 0xb08850, skin: 0xe8c4a4, sleeveColor: 0xd8cbb0 }, blade: glowColor(0.45, 1.3, 4.5), ph: Math.PI },
-      ].forEach((d) => {
-        const p = BHFigures.person(THREE, Object.assign({ height: 0.95 }, d.o));
-        p.root.position.set(d.x, 0, 0); p.root.rotation.y = d.x < 0 ? Math.PI / 2 : -Math.PI / 2; duel.add(p.root);
-        const sword = new THREE.Group(); sword.rotation.x = Math.PI / 2; p.hand.R.add(sword);
-        const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), mats.grey); sword.add(hilt);
-        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.62, 8), new THREE.MeshBasicMaterial({ color: d.blade, toneMapped: false }));
-        blade.position.y = 0.36; sword.add(blade);
-        const tip = new THREE.Object3D(); tip.position.y = 0.55; sword.add(tip);
-        duelists.push({ p, ph: d.ph, tip });
-      });
-    }
-    /* the boxy little helper robot */
-    const r = new THREE.Group(); r.position.set(1.0, 0, 0.75); duel.add(r);
-    const white = new THREE.MeshStandardMaterial({ color: 0xe8e8ec, roughness: 0.4, metalness: 0.2 });
-    const blue = new THREE.MeshStandardMaterial({ color: 0x2a5aa8, roughness: 0.4, metalness: 0.3 });
-    const bodyBox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.3, 0.22), white); bodyBox.position.y = 0.24; r.add(bodyBox);
-    for (const y of [0.16, 0.3]) { const band = new THREE.Mesh(new THREE.BoxGeometry(0.265, 0.035, 0.225), blue); band.position.y = y; r.add(band); }
-    const headBox = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.18), white); headBox.position.y = 0.45; r.add(headBox);
-    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), new THREE.MeshBasicMaterial({ color: glowColor(0.6, 1.4, 3), toneMapped: false })); eye.position.set(0, 0.45, 0.091); r.add(eye);
-    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 6), mats.grey); ant.position.set(0.06, 0.57, 0); r.add(ant);
-    const blink = glowSprite(glowColor(3, 0.4, 0.3), 0.08); blink.position.set(0.06, 0.64, 0); r.add(blink);
-    for (const s of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.08), blue); leg.position.set(s * 0.15, 0.09, 0); r.add(leg); const foot = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, 0.12), mats.grey); foot.position.set(s * 0.15, 0.015, 0.01); r.add(foot); }
-    Object.assign(robot, { r, headBox, eye, blink });
-  }
+    const add = (p, geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); p.add(m); return m; };
 
+    /* the tall gold one: slim, jointed, gestures a lot */
+    const gm = new THREE.MeshStandardMaterial({ color: 0xe0b048, metalness: 0.55, roughness: 0.28, emissive: 0x3a2808, emissiveIntensity: 0.4 });
+    const silver = new THREE.MeshStandardMaterial({ color: 0xc8ccd2, metalness: 0.6, roughness: 0.3, emissive: 0x202428, emissiveIntensity: 0.4 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.6 });
+    const g = new THREE.Group(); g.position.set(-0.55, 0.06, 0.1); g.rotation.y = 0.5; g.scale.setScalar(1.5); duel.add(g);
+    const hips = new THREE.Group(); hips.position.y = 0.5; g.add(hips);
+    add(hips, new THREE.BoxGeometry(0.2, 0.08, 0.12), gm);
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const hip = new THREE.Group(); hip.position.set(s * 0.065, -0.03, 0); hips.add(hip);
+      add(hip, new THREE.CylinderGeometry(0.035, 0.03, 0.22, 10), gm, 0, -0.11, 0);
+      add(hip, new THREE.SphereGeometry(0.035, 10, 8), dark, 0, -0.23, 0);   /* knee */
+      add(hip, new THREE.CylinderGeometry(0.032, 0.026, 0.22, 10), s > 0 ? silver : gm, 0, -0.35, 0);   /* one silver shin */
+      add(hip, new THREE.BoxGeometry(0.06, 0.03, 0.11), gm, 0, -0.47, 0.02);
+      legs.push(hip);
+    }
+    const torso = new THREE.Group(); torso.position.y = 0.04; hips.add(torso);
+    add(torso, new THREE.CylinderGeometry(0.045, 0.05, 0.1, 10), dark, 0, 0.06, 0);   /* the waist: wires */
+    for (let i = 0; i < 5; i++) add(torso, new THREE.CylinderGeometry(0.006, 0.006, 0.1, 4), new THREE.MeshBasicMaterial({ color: [0xc03020, 0x2050c0, 0xd0c020, 0x30a040, 0xc03020][i] }), Math.cos(i * 1.3) * 0.035, 0.06, Math.sin(i * 1.3) * 0.035 + 0.01);
+    const chest = add(torso, new THREE.CylinderGeometry(0.12, 0.08, 0.24, 14), gm, 0, 0.23, 0); chest.scale.z = 0.7;
+    add(torso, new THREE.CircleGeometry(0.03, 14), silver, 0, 0.25, 0.085);   /* chest plate disc */
+    const head = new THREE.Group(); head.position.y = 0.4; torso.add(head);
+    add(head, new THREE.CylinderGeometry(0.02, 0.025, 0.05, 8), dark, 0, -0.04, 0);
+    const skull = add(head, new THREE.SphereGeometry(0.075, 20, 16), gm, 0, 0.04, 0); skull.scale.set(0.95, 1.1, 0.95);
+    add(head, new THREE.CylinderGeometry(0.06, 0.07, 0.04, 16), gm, 0, -0.01, 0.005);   /* jaw ring */
+    const eyeMat = new THREE.MeshBasicMaterial({ color: glowColor(3.2, 2.2, 0.5), toneMapped: false });
+    for (const s of [-1, 1]) {
+      add(head, new THREE.SphereGeometry(0.018, 10, 8), eyeMat, s * 0.03, 0.05, 0.063);
+      add(head, new THREE.TorusGeometry(0.021, 0.005, 6, 14), gm, s * 0.03, 0.05, 0.064);
+      add(head, new THREE.CylinderGeometry(0.012, 0.012, 0.02, 10).rotateZ(Math.PI / 2), gm, s * 0.075, 0.04, 0);   /* ear pieces */
+    }
+    add(head, new THREE.BoxGeometry(0.03, 0.006, 0.01), dark, 0, 0.005, 0.07);   /* a little mouth slot */
+    const arms = [];
+    for (const s of [-1, 1]) {
+      const sh = new THREE.Group(); sh.position.set(s * 0.14, 0.31, 0); torso.add(sh);
+      add(sh, new THREE.SphereGeometry(0.04, 10, 8), gm);
+      add(sh, new THREE.CylinderGeometry(0.028, 0.024, 0.17, 10), gm, 0, -0.09, 0);
+      const el = new THREE.Group(); el.position.y = -0.18; sh.add(el);
+      add(el, new THREE.SphereGeometry(0.026, 8, 6), dark);
+      add(el, new THREE.CylinderGeometry(0.024, 0.02, 0.15, 10), gm, 0, -0.08, 0);
+      add(el, new THREE.SphereGeometry(0.03, 10, 8), gm, 0, -0.17, 0).scale.set(0.8, 1.1, 0.5);   /* hand */
+      arms.push({ s, sh, el });
+    }
+    Object.assign(gold, { g, hips, legs, torso, head, arms });
+
+    /* the short one: a white barrel with blue panels, a turning silver dome, two side legs and a middle foot */
+    const bodyTex = canvasTex(512, 256, (c, w, h) => {
+      c.fillStyle = '#eceef2'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#2a58b8';
+      for (let i = 0; i < 6; i++) { const x = i * w / 6; c.fillRect(x + 14, 30, 34, 90); c.fillRect(x + 56, 150, 22, 70); c.fillRect(x + 10, 150, 38, 26); }
+      c.fillStyle = '#9aa0a8'; for (let i = 0; i < 6; i++) c.fillRect(i * w / 6 + 60, 34, 14, 86);
+      c.strokeStyle = 'rgba(60,70,90,0.5)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 136); c.lineTo(w, 136); c.stroke();
+    });
+    const domeTex = canvasTex(512, 128, (c, w, h) => {
+      const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f0f2f6'); gr.addColorStop(1, '#a8aeb8');
+      c.fillStyle = gr; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#2a58b8';
+      for (let i = 0; i < 8; i++) { c.fillRect(i * w / 8 + 8, 70, 40, 40); if (i % 2) c.fillRect(i * w / 8 + 14, 22, 26, 30); }
+    });
+    const white = new THREE.MeshStandardMaterial({ map: bodyTex, roughness: 0.4, metalness: 0.15 });
+    const domeMat = new THREE.MeshStandardMaterial({ map: domeTex, roughness: 0.25, metalness: 0.5, emissive: 0x202830, emissiveIntensity: 0.5 });
+    const plain = new THREE.MeshStandardMaterial({ color: 0xe6e8ee, roughness: 0.45 });
+    const blue = new THREE.MeshStandardMaterial({ color: 0x2a58b8, roughness: 0.4 });
+    const d = new THREE.Group(); d.position.set(0.55, 0.06, 0.3); d.rotation.y = -0.4; d.scale.setScalar(1.5); duel.add(d);
+    const barrel = new THREE.Group(); barrel.position.y = 0.2; d.add(barrel);
+    add(barrel, new THREE.CylinderGeometry(0.15, 0.14, 0.3, 28), white, 0, 0.15, 0);
+    const domeG = new THREE.Group(); domeG.position.y = 0.3; barrel.add(domeG);
+    add(domeG, new THREE.SphereGeometry(0.15, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+    add(domeG, new THREE.SphereGeometry(0.035, 14, 10), new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.1, metalness: 0.5 }), 0, 0.08, 0.125);   /* the big eye */
+    const lamp = add(domeG, new THREE.SphereGeometry(0.018, 10, 8), new THREE.MeshBasicMaterial({ color: glowColor(3.5, 0.4, 0.3), toneMapped: false }), 0.07, 0.11, 0.095);
+    const lampGlow = glowSprite(glowColor(3, 0.5, 0.4), 0.12); lampGlow.position.copy(lamp.position); domeG.add(lampGlow);
+    add(domeG, new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: glowColor(0.5, 1.2, 3.5), toneMapped: false }), -0.06, 0.04, 0.135);
+    for (const s of [-1, 1]) {   /* the side legs, with shoulder hubs and wide feet */
+      add(d, new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16).rotateZ(Math.PI / 2), blue, s * 0.17, 0.42, 0);
+      const leg = add(d, new THREE.BoxGeometry(0.05, 0.38, 0.08), plain, s * 0.175, 0.22, 0); leg.rotation.x = 0.08;
+      add(d, new THREE.BoxGeometry(0.08, 0.06, 0.14), plain, s * 0.175, 0.03, 0.02);
+    }
+    add(d, new THREE.BoxGeometry(0.06, 0.06, 0.1), plain, 0, 0.03, 0);   /* the middle foot */
+    Object.assign(dome, { d, barrel, domeG, lampGlow, lamp });
+  }
   /* ---------- lightspeed ---------- */
   const STREAKS = 520;
   const sPos = new Float32Array(STREAKS * 6), sData = [];
@@ -527,25 +580,27 @@
       }
     }
 
-    /* the duel: swings, parries, sparks where the blades meet; the robot fidgets and beeps */
+    /* the droids: the gold one frets and waves its arms; the little one rocks, swivels its dome and blinks */
     duel.visible = fleet.visible;
     duel.rotation.y = 0.5 + Math.sin(t * 0.1) * 0.15; duel.position.y = -2.1 + Math.sin(t * 0.4) * 0.15;
-    duelists.forEach((d, i) => {
-      const sw = Math.sin(t * 3.2 + d.ph);
-      d.p.update(t, { armR: -1.5 + sw * 0.85, armRz: 0.25 * Math.sin(t * 1.7 + i), armL: -0.3, lean: 0.08 * sw, walk: 0.15 });
-      d.p.root.position.x = (i ? 0.5 : -0.5) + Math.sin(t * 0.8) * 0.12;
-    });
-    if (duelists.length === 2 && Math.abs(Math.sin(t * 3.2)) < 0.08 && Math.random() < 0.5) {
-      duelists[0].tip.getWorldPosition(P0); duelists[1].tip.getWorldPosition(P1);
-      spark(P0.lerp(P1, 0.5), 0.5);
+    {
+      const fuss = 0.5 + 0.5 * Math.sin(t * 0.6);   /* how worked up it is */
+      gold.torso.rotation.z = Math.sin(t * 1.3) * 0.05; gold.torso.rotation.x = 0.05 + 0.05 * fuss;
+      gold.head.rotation.y = Math.sin(t * 0.7) * 0.6 - 0.2; gold.head.rotation.z = Math.sin(t * 2.1) * 0.08;
+      gold.hips.position.y = 0.5 + Math.abs(Math.sin(t * 2.6)) * 0.006;
+      gold.arms.forEach(({ s, sh, el }, i) => {
+        sh.rotation.x = -0.4 - fuss * (0.5 + 0.4 * Math.sin(t * 3.1 + i * 2));
+        sh.rotation.z = s * (0.25 + 0.2 * fuss * Math.sin(t * 2.3 + i));
+        el.rotation.x = -0.9 - 0.4 * Math.sin(t * 4 + i * 1.7) * fuss;
+      });
+      gold.legs.forEach((l, i) => (l.rotation.x = Math.sin(t * 1.3 + i * Math.PI) * 0.03));
+      dome.d.rotation.z = Math.sin(t * 2.2) * 0.06;
+      dome.barrel.rotation.x = 0.08 + Math.sin(t * 1.1) * 0.06;
+      dome.domeG.rotation.y = Math.sin(t * 0.9) * 1.1 + Math.sin(t * 3.7) * 0.15;
+      const on = Math.sin(t * 6) > 0.2 || Math.sin(t * 13) > 0.85;
+      dome.lampGlow.material.opacity = on ? 1 : 0.1;
+      dome.lamp.material.color.copy(on ? glowColor(3.5, 0.4, 0.3) : glowColor(0.4, 0.05, 0.05));
     }
-    if (robot.r) {
-      robot.r.rotation.y = -0.6 + Math.sin(t * 0.7) * 0.5;
-      robot.headBox.rotation.y = Math.sin(t * 2.3) * 0.3;
-      robot.r.position.y = Math.abs(Math.sin(t * 6)) * 0.015;
-      robot.blink.material.opacity = Math.sin(t * 5) > 0.3 ? 1 : 0.1;
-    }
-
     controls.update();
     composer.render();
   });
