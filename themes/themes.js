@@ -29,6 +29,7 @@
     { id: 'flycity', name: 'The Fifth Element', blurb: 'Hazy canyon city with lanes of flying cars and a yellow taxi weaving through. Click and the taxi dives.' },
     { id: 'overlook', name: 'The Shining', blurb: 'A long, empty hotel hallway, hexagon carpet, a tricycle and a small red ball rolling toward you. Click if you dare.' },
     { id: 'aquarium', name: 'Aquarium', blurb: 'A saltwater reef tank: clownfish in an anemone, tangs, a pufferfish and a sunken bellhive99 treasure chest. Click to feed the fish.' },
+    { id: 'brewing', name: 'Homebrew Garage', blurb: 'Brew night in the garage: a kettle at a rolling boil, bubbling carboys, a bellhive99 House Ale keg and the brewery cat asleep on the malt. Click to pour a pint.' },
   ];
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   const known = (id) => !!(id && byId[id]);
