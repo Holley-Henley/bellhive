@@ -184,15 +184,7 @@
   title.scale.set(16, 2, 1); title.renderOrder = 6;
   scene.add(title);
 
-  /* ---------- an astronaut and a slab robot drifting in the foreground ---------- */
-  let astro = null;
-  if (window.BHFigures) {
-    astro = BHFigures.person(THREE, { height: 1.7, stout: true, topColor: 0xeceae6, bottomColor: 0xeceae6, sleeveColor: 0xeceae6, shoeColor: 0xbdbab4, gloves: 0xd8d6d0, hat: 'helmet', hatColor: 0xf2f0ec, hair: 'none' });
-    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.2), new THREE.MeshStandardMaterial({ color: 0xd8d6d0, roughness: 0.6 }));
-    pack.position.set(0, 0.98, -0.2); astro.body.add(pack);
-    const patch = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16), new THREE.MeshBasicMaterial({ color: 0x3a6ad8 })); patch.position.set(-0.13, 1.05, 0.12); astro.body.add(patch);
-    scene.add(astro.root);
-  }
+  /* ---------- a slab robot drifting in the foreground ---------- */
   const bot = new THREE.Group(); scene.add(bot);
   const slabs = [];
   {
@@ -271,14 +263,8 @@
     camRight.setFromMatrixColumn(camera.matrixWorld, 0); camUp.setFromMatrixColumn(camera.matrixWorld, 1);
     title.position.set(0, 0, 0).addScaledVector(camUp, -7.6);
 
-    /* the astronaut and the robot stay in the near foreground as the view turns; they slow with time too */
+    /* the robot stays in the near foreground as the view turns; they slow with time too */
     camFwd.setFromMatrixColumn(camera.matrixWorld, 2).negate();
-    if (astro) {
-      astro.root.position.copy(camera.position).addScaledVector(camFwd, 13.5).addScaledVector(camRight, -3.9 + Math.sin(sim * 0.2) * 0.3).addScaledVector(camUp, -2.6 + Math.sin(sim * 0.33) * 0.25);
-      astro.root.quaternion.copy(camera.quaternion);
-      astro.root.rotateY(0.55 + Math.sin(sim * 0.15) * 0.35); astro.root.rotateZ(0.35 + Math.sin(sim * 0.21) * 0.15); astro.root.rotateX(-0.2);
-      astro.update(sim, { armL: -0.6 + Math.sin(sim * 0.7) * 0.2, armR: -1.1 + Math.sin(sim * 0.5) * 0.25, armLz: 0.5, armRz: -0.4, walk: 0.15, pace: 1.2 });
-    }
     bot.position.copy(camera.position).addScaledVector(camFwd, 14).addScaledVector(camRight, 4.0 + Math.sin(sim * 0.17) * 0.3).addScaledVector(camUp, -2.4 + Math.sin(sim * 0.29) * 0.25);
     bot.quaternion.copy(camera.quaternion); bot.rotateY(-0.45 + Math.sin(sim * 0.12) * 0.4); bot.rotateZ(-0.2); bot.scale.setScalar(1.15);
     slabs.forEach((s, i) => (s.rotation.x = Math.sin(sim * 0.8 + i * 1.1) * 0.35 * (i % 2 ? 1 : -1)));
