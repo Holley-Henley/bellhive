@@ -3,7 +3,10 @@
 --
 -- site_theme    one row (id = 1): how the site picks the day's theme. Any signed-in member can
 --               read and change it (My Account and ADMIN > Settings both show it).
---                 mode          static | daily | weekly | monthly | random (random = each visit)
+--                 mode          static | daily | weekly | monthly | random (each visit) | timed
+--                 cycle_minutes timed: how often it changes (1 - 1440 minutes)
+--                 cycle_order   timed: random | order (the order of the rotation list)
+--                 cycle_hive    timed: Classic Beehive every other change
 --                 static_theme  the theme when mode = static
 --                 rotation      themes that take turns for daily / weekly / monthly / random
 --                 today_theme   "switch today's theme": wins for today_date only
@@ -14,7 +17,7 @@
 
 create table if not exists public.site_theme (
   id            int primary key default 1 check (id = 1),
-  mode          text not null default 'static' check (mode in ('static', 'daily', 'weekly', 'monthly', 'random')),
+  mode          text not null default 'static' check (mode in ('static', 'daily', 'weekly', 'monthly', 'random', 'timed')),
   static_theme  text not null default 'beehive' check (char_length(static_theme) <= 40),
   rotation      text[] not null default array['beehive', 'space'],
   today_theme   text check (today_theme is null or char_length(today_theme) <= 40),
@@ -25,6 +28,14 @@ create table if not exists public.site_theme (
   updated_by    uuid references auth.users (id) on delete set null
 );
 insert into public.site_theme (id) values (1) on conflict (id) do nothing;
+
+-- timed switching (added 261117.04); re-runnable on an older table
+alter table public.site_theme
+  add column if not exists cycle_minutes int not null default 15 check (cycle_minutes between 1 and 1440),
+  add column if not exists cycle_order text not null default 'random' check (cycle_order in ('random', 'order')),
+  add column if not exists cycle_hive boolean not null default false;
+alter table public.site_theme drop constraint if exists site_theme_mode_check;
+alter table public.site_theme add constraint site_theme_mode_check check (mode in ('static', 'daily', 'weekly', 'monthly', 'random', 'timed'));
 
 alter table public.site_theme enable row level security;
 revoke all on public.site_theme from anon, authenticated;

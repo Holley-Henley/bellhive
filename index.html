@@ -91,6 +91,7 @@
     await BH.loadPerms();
     /* home page 3D theme (themes/themes.js) - sent to INDEXB.HTM with the role */
     themeData = await BHThemes.load().catch(() => null);
+    themeTimer();
     if (!permsWatched) { permsWatched = true; BH.watchPerms(() => frameWins().forEach(tell)); }
     frameWins().forEach(tell);
     const frames = document.querySelectorAll('.bh-frames iframe');
@@ -143,12 +144,28 @@
       const cur = shownTheme || themeFor();
       const next = ids[(ids.indexOf(cur) + 1) % ids.length];
       await BHThemes.saveMine(next);
-      themeData.mine = next;
+      themeData.mine = next; themeTimer();
       shownTheme = '';
       document.querySelector('.bh-frames iframe[name=main]').src = 'INDEXB.HTM';
       BH.ui.toast('Your theme: ' + BHThemes.byId[next].name + ' · My Account to go back to the site\'s', 'ok');
     } catch (err) { BH.ui.toast(err.message, 'error'); }
     switching = false;
+  }
+  /* "Change on a timer": when the slot runs out, an open home page swaps to the new theme by itself */
+  let themeTick = 0;
+  function themeTimer() {
+    clearTimeout(themeTick);
+    if (!BH.user || !themeData) return;
+    const ms = BHThemes.nextChange(themeData.cfg, themeData.mine);
+    if (!ms) return;
+    themeTick = setTimeout(() => {
+      const main = document.querySelector('.bh-frames iframe[name=main]');
+      let onHome = !!shownTheme;
+      try { onHome = /indexb\.htm$/i.test(main.contentWindow.location.pathname); } catch (err) { /* file:// - go by what the frame last reported */ }
+      const want = themeFor();
+      if (onHome && want && want !== shownTheme) { shownTheme = ''; main.src = 'INDEXB.HTM'; }
+      themeTimer();
+    }, ms + 400);
   }
   function tell(win) { try { win.postMessage({ bhRole: roleFor(), bhVersion: siteVer, bhPerms: BH.user ? BH.perms : null, bhTheme: themeFor() }, '*'); } catch (err) { /* frame gone */ } }
   const frameWins = () => [...document.querySelectorAll('.bh-frames iframe')].map((f) => f.contentWindow).filter(Boolean);
@@ -156,7 +173,7 @@
     if (frameWins().includes(e.source) && e.data && e.data.bhAsk === 'role') tell(e.source);
     if (frameWins().includes(e.source) && e.data && e.data.bhNav && BH.user) logMenuClick(e.data.bhNav);
     /* a theme was changed on My Account / ADMIN > Settings: the next home page visit uses it */
-    if (frameWins().includes(e.source) && e.data && e.data.bhThemeChanged && BH.user) BHThemes.load().then((d) => { themeData = d; }).catch(() => {});
+    if (frameWins().includes(e.source) && e.data && e.data.bhThemeChanged && BH.user) BHThemes.load().then((d) => { themeData = d; themeTimer(); }).catch(() => {});
     if (frameWins().includes(e.source) && e.data && typeof e.data.bhThemeShown === 'string') shownTheme = e.data.bhThemeShown;
     /* the star in the left menu: step this person to the next theme and show it */
     if (frameWins().includes(e.source) && e.data && e.data.bhNextTheme && BH.user && themeData) nextTheme();

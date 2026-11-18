@@ -6,7 +6,10 @@
  *   1. your own pick (My Account) - you only
  *   2. "switch today's theme" - everyone, today only
  *   3. a holiday pinned to today's date (MM-DD)
- *   4. the schedule: static | daily | weekly | monthly | random (each visit), over the rotation list
+ *   4. the schedule: static | daily | weekly | monthly | random (each visit) | timed, over the rotation list
+ *      timed: changes every cycle_minutes, randomly or in the rotation's order, optionally with the
+ *      Classic Beehive every other change. Time slots count from 1970, so everyone sees the same theme.
+ *   BHThemes.nextChange(cfg, mine) -> ms until the theme next changes on its own (timed mode), or 0
  *
  *   BHThemes.list                 [{ id, name, blurb }]
  *   BHThemes.load()               -> { cfg, mine }   (needs BH.init() first)
@@ -35,8 +38,37 @@
     ['weekly', 'Change every week (Mondays)'],
     ['monthly', 'Change every month'],
     ['random', 'Random each visit'],
+    ['timed', 'Change on a timer'],
   ];
-  const DEFAULT = { mode: 'static', static_theme: 'beehive', rotation: ['beehive', 'space'], today_theme: null, today_date: null, holidays: [] };
+  const DEFAULT = { mode: 'static', static_theme: 'beehive', rotation: ['beehive', 'space'], today_theme: null, today_date: null, holidays: [], cycle_minutes: 15, cycle_order: 'random', cycle_hive: false };
+  const INTERVALS = [[1, '1 minute'], [2, '2 minutes'], [5, '5 minutes'], [10, '10 minutes'], [15, '15 minutes'], [30, '30 minutes'], [60, '1 hour'], [120, '2 hours'], [360, '6 hours'], [720, '12 hours']];
+  const HOME = 'beehive';
+  const everyLabel = (m) => { const i = INTERVALS.find((x) => x[0] === m); return i ? i[1] : m + ' minutes'; };
+  /* a stable pseudo-random number in [0,1) for a slot, the same in every browser */
+  const hash01 = (k) => { let x = (k | 0) ^ 0x5bd1e995; x = Math.imul(x ^ (x >>> 15), 0x2c1b3c6d); x = Math.imul(x ^ (x >>> 12), 0x297a2d39); x ^= x >>> 15; return (x >>> 0) / 4294967296; };
+  function timedPick(cfg, rot, now) {
+    const mins = Math.min(1440, Math.max(1, cfg.cycle_minutes | 0 || 15));
+    const slot = Math.floor(now.getTime() / (mins * 60000));
+    let pool = rot, k = slot;
+    if (cfg.cycle_hive) {
+      if (slot % 2 === 0) return HOME;
+      pool = rot.filter((id) => id !== HOME);
+      if (!pool.length) return HOME;
+      k = Math.floor(slot / 2);
+    }
+    const n = pool.length;
+    if (cfg.cycle_order === 'order') return pool[((k % n) + n) % n];
+    /* shuffle-play: each round shows every theme once in a shuffled order (the same shuffle in every
+       browser), and a round never starts with the theme the last one ended on */
+    const order = (r) => {
+      const p = pool.slice();
+      for (let i = n - 1; i > 0; i--) { const j = Math.floor(hash01(r * 7919 + i) * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+      return p;
+    };
+    const r = Math.floor(k / n), at = ((k % n) + n) % n, cur = order(r);
+    if (n > 1 && cur[0] === order(r - 1)[n - 1]) [cur[0], cur[1]] = [cur[1], cur[0]];
+    return cur[at];
+  }
 
   const pad = (n) => String(n).padStart(2, '0');
   const isoDay = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -58,8 +90,19 @@
       case 'weekly': return { id: rot[Math.floor((dn + 3) / 7) % rot.length], why: 'changes every week' };
       case 'monthly': return { id: rot[(now.getFullYear() * 12 + now.getMonth()) % rot.length], why: 'changes every month' };
       case 'random': return { id: rot[Math.floor(Math.random() * rot.length)], why: 'random each visit' };
+      case 'timed': return { id: timedPick(cfg, rot, now), why: 'changes every ' + everyLabel(cfg.cycle_minutes) + (cfg.cycle_hive ? ', Classic Beehive every other time' : '') };
       default: return { id: known(cfg.static_theme) ? cfg.static_theme : 'beehive', why: 'kept static' };
     }
+  }
+
+  /* ms until the timer schedule next changes the theme for this viewer; 0 when nothing is on a timer
+     (own pick, today's switch and holidays all hold still) */
+  function nextChange(cfg, mine, now) {
+    cfg = Object.assign({}, DEFAULT, cfg || {});
+    now = now || new Date();
+    if (cfg.mode !== 'timed' || !/^changes every/.test(resolve(cfg, mine, now).why)) return 0;
+    const ms = Math.min(1440, Math.max(1, cfg.cycle_minutes | 0 || 15)) * 60000;
+    return ms - (now.getTime() % ms);
   }
 
   async function load() {
@@ -124,14 +167,44 @@
       modeSel.value = cfg.mode;
       const staticSel = themeSelect(cfg.static_theme);
       const staticRow = el('label', { class: 'bh-field' }, el('span', null, 'Theme'), staticSel);
-      const rotBoxes = list.map((t) => {
-        const cb = el('input', { type: 'checkbox', value: t.id, checked: (cfg.rotation || []).includes(t.id) ? 'checked' : null });
-        return el('label', { class: 'th-check' }, cb, el('b', null, t.name), el('small', null, t.blurb));
+      /* the rotation: ticked themes in their saved order first, then the rest; arrows reorder them */
+      const saved = (cfg.rotation || []).filter(known);
+      const ordered = saved.concat(list.map((t) => t.id).filter((id) => !saved.includes(id)));
+      const rotList = el('div', { class: 'th-rot' });
+      const rotBoxes = ordered.map((id) => {
+        const t = byId[id];
+        const cb = el('input', { type: 'checkbox', value: t.id, checked: saved.includes(t.id) ? 'checked' : null });
+        const row = el('div', { class: 'th-rotrow' });
+        const move = (d) => {
+          const rows = [...rotList.children], i = rows.indexOf(row), j = i + d;
+          if (j < 0 || j >= rows.length) return;
+          if (d < 0) rotList.insertBefore(row, rows[j]); else rotList.insertBefore(rows[j], row);
+        };
+        row.append(
+          el('span', { class: 'th-arrows' },
+            el('button', { class: 'bh-btn th-arrow', type: 'button', title: 'Move up', onclick: () => move(-1) }, '\u25b2'),
+            el('button', { class: 'bh-btn th-arrow', type: 'button', title: 'Move down', onclick: () => move(1) }, '\u25bc')),
+          el('label', { class: 'th-check' }, cb, el('b', null, t.name), el('small', null, t.blurb)));
+        rotList.appendChild(row);
+        return row;
       });
-      const rotRow = el('div', { class: 'bh-field' }, el('span', null, 'Themes in the rotation'), ...rotBoxes);
+      const rotRow = el('div', { class: 'bh-field' }, el('span', null, 'Themes in the rotation'),
+        el('small', { class: 'th-help' }, 'Tick the themes to use. The arrows set the order for "In order".'), rotList);
+
+      /* timer options */
+      const everySel = el('select', null, ...INTERVALS.map(([m, l]) => opt(String(m), l, m === cfg.cycle_minutes)));
+      if (!INTERVALS.some(([m]) => m === cfg.cycle_minutes)) everySel.value = '15';
+      const orderSel = el('select', null, opt('random', 'Random (never the same one twice running)', cfg.cycle_order !== 'order'), opt('order', 'In order (the order of the list below)', cfg.cycle_order === 'order'));
+      const hiveCb = el('input', { type: 'checkbox', checked: cfg.cycle_hive ? 'checked' : null });
+      const timedRow = el('div', null,
+        el('label', { class: 'bh-field' }, el('span', null, 'Change every'), everySel),
+        el('label', { class: 'bh-field' }, el('span', null, 'Order'), orderSel),
+        el('label', { class: 'th-check' }, hiveCb, el('b', null, 'Classic Beehive every other change'),
+          el('small', null, 'Beehive, then the next theme, then Beehive again, then the next one, and so on.')));
       const syncMode = () => {
         staticRow.classList.toggle('bh-gone', modeSel.value !== 'static');
         rotRow.classList.toggle('bh-gone', modeSel.value === 'static');
+        timedRow.classList.toggle('bh-gone', modeSel.value !== 'timed');
       };
       modeSel.addEventListener('change', syncMode);
       syncMode();
@@ -153,12 +226,13 @@
 
       const saveBtn = el('button', { class: 'bh-btn primary', type: 'button', onclick: async () => {
         err.textContent = '';
-        const rotation = rotBoxes.map((l) => l.querySelector('input')).filter((c) => c.checked).map((c) => c.value);
+        const rotation = [...rotList.children].map((r) => r.querySelector('input[type=checkbox]')).filter((c) => c.checked).map((c) => c.value);
         if (modeSel.value !== 'static' && !rotation.length) { err.textContent = 'Tick at least one theme for the rotation.'; return; }
+        if (modeSel.value === 'timed' && hiveCb.checked && !rotation.some((id) => id !== HOME)) { err.textContent = 'With Classic Beehive every other change, tick at least one other theme.'; return; }
         const bad = hols.find((h) => !/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(h.md || ''));
         if (bad) { err.textContent = 'Holiday dates are month-day, like 05-04 or 12-25.'; return; }
         try {
-          cfg = await saveSite({ mode: modeSel.value, static_theme: staticSel.value, rotation, holidays: hols.map((h) => ({ md: h.md, theme: h.theme, name: (h.name || '').trim() || undefined })) });
+          cfg = await saveSite({ mode: modeSel.value, static_theme: staticSel.value, rotation, cycle_minutes: +everySel.value, cycle_order: orderSel.value, cycle_hive: hiveCb.checked, holidays: hols.map((h) => ({ md: h.md, theme: h.theme, name: (h.name || '').trim() || undefined })) });
           toast('Theme schedule saved', 'ok'); render();
         } catch (e) { fail(e); }
       } }, 'Save Schedule');
@@ -179,7 +253,7 @@
         el('div', { class: 'th-row' }, todaySel, todayBtn, todayClear),
         el('h3', { class: 'th-h3' }, 'Schedule'),
         el('label', { class: 'bh-field' }, el('span', null, 'How it changes'), modeSel),
-        staticRow, rotRow,
+        staticRow, timedRow, rotRow,
         el('div', { class: 'bh-field' }, el('span', null, 'Holidays'),
           el('small', { class: 'th-help' }, 'On these dates the theme is set automatically, whatever the schedule says.'), holBox),
         saveBtn,
@@ -211,9 +285,13 @@
       '.th-hol .th-md { width: 76px; flex: none; }',
       '.th-hol input:not(.th-md) { flex: 1 1 140px; }',
       '.th-card > .bh-btn { margin-top: 8px; }',
+      '.th-rotrow { display: flex; gap: 8px; align-items: center; }',
+      '.th-rotrow .th-check { flex: 1; }',
+      '.th-arrows { display: flex; flex-direction: column; gap: 2px; }',
+      '.th-arrow { padding: 0 6px; font-size: 10px; line-height: 16px; min-height: 0; }',
     ].join('\n');
     document.head.appendChild(css);
   }
 
-  window.BHThemes = { list, byId, MODES, resolve, load, saveSite, saveMine, card, isoDay };
+  window.BHThemes = { list, byId, MODES, resolve, nextChange, load, saveSite, saveMine, card, isoDay };
 })();
