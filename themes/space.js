@@ -1,8 +1,8 @@
 /* bellhive99.com - home page theme: Star Wars (classic space opera)
  * Starfighter dogfight in deep space: light fighters (orange engines, red bolts) and dark delta
- * fighters (green engines, green bolts) chase each other around a ring battle station and a
+ * fighters (green engines, green bolts) chase each other near a moon-sized battle station and a
  * ringed planet. Hits spark, ships explode and warp back in. Two droids bicker on a floating rock. The bellhive99 logo is a flickering
- * hologram projected from the station. Click anywhere for the jump to lightspeed.
+ * hologram projected toward the fight. The station is an armored sphere with a superlaser dish that fires now and then. Click anywhere for the jump to lightspeed.
  * All ships and the station are original designs. Loaded by INDEXB.HTM (see themes/themes.js).
  */
 (window.BHScenes = window.BHScenes || {}).space = function (box, lib) {
@@ -153,42 +153,89 @@
   const moon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 20), new THREE.MeshStandardMaterial({ color: 0x9a9690, roughness: 1 }));
   moon.position.set(24, 6, 10); planet.add(moon);
 
-  /* ring battle station (spins slowly) */
-  const station = new THREE.Group(); station.position.set(24, 9, -66); far.add(station);
-  station.rotation.set(1.05, -0.5, 0.25);
+  /* the battle station: a moon-sized armored sphere with an equatorial trench and a superlaser dish */
+  const SR = 11;
+  const station = new THREE.Group(); station.position.set(15, 3.2, -72); far.add(station);
+  station.rotation.set(0.12, -0.25, 0.18);
   const spin = new THREE.Group(); station.add(spin);
-  const hullMap = canvasTex(1024, 64, (g, w, h) => {
-    g.fillStyle = '#4b5059'; g.fillRect(0, 0, w, h);
-    for (let x = 0; x < w; x += 16) { g.fillStyle = `rgb(${60 + rand(0, 30)},${64 + rand(0, 30)},${72 + rand(0, 30)})`; g.fillRect(x, 0, 15, h); }
-    g.fillStyle = 'rgba(0,0,0,0.35)'; for (let y = 8; y < h; y += 16) g.fillRect(0, y, w, 2);
-  }, 6, 1);
-  const lightMap = canvasTex(1024, 64, (g, w, h) => {
-    g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 700; i++) { g.fillStyle = pick(['#fff3c4', '#cfe6ff', '#ffe08a']); g.fillRect(Math.floor(rand(0, w / 3)) * 3, Math.floor(rand(0, h / 4)) * 4 + 1, 2, 2); }
-  }, 6, 1);
-  const hullMat = new THREE.MeshStandardMaterial({ map: hullMap, emissiveMap: lightMap, emissive: 0xffffff, emissiveIntensity: 0.9, metalness: 0.25, roughness: 0.6 });
-  const torus = new THREE.Mesh(new THREE.TorusGeometry(9, 1.25, 20, 140), hullMat); torus.rotation.x = Math.PI / 2; spin.add(torus);
-  const torus2 = new THREE.Mesh(new THREE.TorusGeometry(9, 0.45, 10, 140), new THREE.MeshStandardMaterial({ color: 0x2e3238, metalness: 0.7, roughness: 0.4 }));
-  torus2.rotation.x = Math.PI / 2; torus2.position.y = 1.15; spin.add(torus2);
-  const darkMetal = new THREE.MeshStandardMaterial({ color: 0x6a707b, metalness: 0.3, roughness: 0.5 });
-  for (let k = 0; k < 6; k++) {
-    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 9, 10), darkMetal);
-    sp.rotation.z = Math.PI / 2; const a = (k / 6) * Math.PI * 2;
-    const holder = new THREE.Group(); holder.rotation.y = a; sp.position.x = 4.5; holder.add(sp); spin.add(holder);
-    const pod = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 1.6), hullMat);
-    pod.position.set(Math.cos(a) * 9, 0, -Math.sin(a) * 9); pod.rotation.y = a; spin.add(pod);
-  }
-  const hub = new THREE.Mesh(new THREE.SphereGeometry(2.7, 40, 24), hullMat); station.add(hub);
-  const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.7, 12, 12), darkMetal); station.add(spire);
-  const beacons = [];
+  /* hull: an equirectangular map of panels, trenches and tiny lights (v = 0.5 is the equator) */
+  const HW = 2048, HH = 1024;
+  const hullCanvas = (lights) => (g, w, h) => {
+    g.fillStyle = lights ? '#26282c' : '#5a5e64'; g.fillRect(0, 0, w, h);   /* the light map carries a dim base glow so the night side still reads as gray */
+    for (let row = 0; row < 64; row++) {
+      const y0 = (row / 64) * h, rh = h / 64, lat = Math.abs(row / 64 - 0.5) * Math.PI;
+      const cells = Math.max(8, Math.round(160 * Math.cos(lat)));
+      for (let c = 0; c < cells; c++) {
+        const x0 = (c / cells) * w, cw = w / cells;
+        if (lights) {
+          if (Math.random() < 0.05) for (let k = 0; k < 2; k++) { g.fillStyle = pick(['#fff4d0', '#d0e6ff', '#ffe6a0']); g.fillRect(x0 + rand(1, cw - 3), y0 + rand(1, rh - 2), 2, 1.5); }
+          continue;
+        }
+        const v = Math.floor(rand(70, 120));
+        g.fillStyle = `rgb(${v},${v + 2},${v + 6})`; g.fillRect(x0 + 1, y0 + 1, cw - 2, rh - 2);
+        if (Math.random() < 0.3) { g.fillStyle = `rgba(0,0,0,${rand(0.2, 0.45)})`; g.fillRect(x0 + rand(2, cw / 2), y0 + 2, rand(3, cw / 2), rh - 4); }   /* recessed panels */
+        if (Math.random() < 0.08) { g.fillStyle = 'rgba(200,205,215,0.5)'; g.fillRect(x0 + cw * 0.3, y0 + rh * 0.2, cw * 0.4, rh * 0.6); }   /* towers catching the light */
+      }
+    }
+    if (!lights) {
+      g.strokeStyle = 'rgba(20,22,26,0.7)'; g.lineWidth = 2;   /* long service trenches */
+      for (let i = 0; i < 22; i++) { const y = rand(0.1, 0.9) * h; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      for (let i = 0; i < 40; i++) { const x = rand(0, w), y = rand(0.12, 0.88) * h; g.fillStyle = 'rgba(25,27,30,0.8)'; g.fillRect(x, y, rand(40, 200), 3); }
+      const eq = h / 2;   /* the equatorial trench: dark, with lit walls */
+      g.fillStyle = '#15171a'; g.fillRect(0, eq - 9, w, 18);
+      g.fillStyle = 'rgba(150,155,165,0.6)'; g.fillRect(0, eq - 11, w, 2); g.fillRect(0, eq + 9, w, 2);
+    } else {
+      g.fillStyle = '#08090a'; g.fillRect(0, h / 2 - 9, w, 18);
+      for (let i = 0; i < 90; i++) { g.fillStyle = pick(['#fff4d0', '#d0e6ff']); g.fillRect(rand(0, w), h / 2 + rand(-8, 8), 2, 1.5); }
+    }
+  };
+  const hullMap = canvasTex(HW, HH, hullCanvas(false));
+  const lightMap = canvasTex(HW, HH, hullCanvas(true));
+  const hullMat = new THREE.MeshStandardMaterial({ map: hullMap, bumpMap: hullMap, bumpScale: 1.5, emissiveMap: lightMap, emissive: 0xffffff, emissiveIntensity: 1.0, metalness: 0.35, roughness: 0.65 });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(SR, 96, 64), hullMat); spin.add(ball);
+  const lipMat = new THREE.MeshStandardMaterial({ color: 0x4a4e55, metalness: 0.4, roughness: 0.6 });
+  for (const y of [-0.22, 0.22]) { const lip = new THREE.Mesh(new THREE.TorusGeometry(SR * Math.cos(y / SR), 0.07, 6, 160), lipMat); lip.rotation.x = Math.PI / 2; lip.position.y = y; spin.add(lip); }
+  /* the superlaser dish: a shaded concave cap, a rim, tributary emitters and a focus point */
+  const DISH_A = 0.36;   /* angular radius of the dish */
+  const dishTex = canvasTex(512, 256, (g, w, h) => {   /* x = angle around the dish, y = from centre (bottom) to rim (top) */
+    for (let y = 0; y < h; y++) {
+      const r = 1 - y / h;
+      for (let x = 0; x < w; x += 4) {
+        const ang = (x / w) * Math.PI * 2;
+        const shade = 70 + 55 * Math.cos(ang - 2.4) * r + 20 * (1 - r);   /* lit on one inner wall, dark on the other */
+        g.fillStyle = `rgb(${shade | 0},${(shade + 2) | 0},${(shade + 6) | 0})`; g.fillRect(x, y, 4, 1);
+      }
+    }
+    g.strokeStyle = 'rgba(20,22,26,0.55)'; g.lineWidth = 2;
+    for (let i = 1; i < 6; i++) { const y = (i / 6) * h; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }   /* concentric rings */
+    for (let i = 0; i < 24; i++) { const x = (i / 24) * w; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }   /* radial ribs */
+  });
+  dishTex.wrapS = THREE.RepeatWrapping; dishTex.wrapT = THREE.ClampToEdgeWrapping;
+  const dish = new THREE.Group(); spin.add(dish);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(SR * 1.003, 64, 16, 0, Math.PI * 2, 0, DISH_A), new THREE.MeshStandardMaterial({ map: dishTex, roughness: 0.7, metalness: 0.3 }));
+  dish.add(cap);
+  const dishRim = new THREE.Mesh(new THREE.TorusGeometry(SR * Math.sin(DISH_A), 0.14, 8, 96), lipMat); dishRim.rotation.x = Math.PI / 2; dishRim.position.y = SR * Math.cos(DISH_A); dish.add(dishRim);
+  const focusPos = V(0, SR * 1.01, 0);
+  const emitMat = new THREE.MeshBasicMaterial({ color: glowColor(0.3, 1.2, 0.4), toneMapped: false });
+  const focus = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), emitMat); focus.position.copy(focusPos); dish.add(focus);
+  const focusGlow = glowSprite(glowColor(0.6, 3, 0.8), 2.2, 0.3); focusGlow.position.copy(focusPos); dish.add(focusGlow);
+  const tribs = [];
   for (let k = 0; k < 8; k++) {
-    const b = glowSprite(glowColor(4, 0.4, 0.3), 0.9);
-    const a = (k / 8) * Math.PI * 2;
-    b.position.set(Math.cos(a) * 10.3, 0, Math.sin(a) * 10.3); spin.add(b); beacons.push(b);
+    const a = (k / 8) * Math.PI * 2, rr = SR * Math.sin(DISH_A * 0.62), yy = SR * Math.cos(DISH_A * 0.62) + 0.05;
+    const e = glowSprite(glowColor(0.6, 3, 0.8), 0.7, 0.2); e.position.set(Math.cos(a) * rr, yy, Math.sin(a) * rr); dish.add(e); tribs.push(e);
   }
-  const tipA = glowSprite(glowColor(4, 0.4, 0.3), 1.3); tipA.position.y = 6.2; station.add(tipA); beacons.push(tipA);
-  const tipB = glowSprite(glowColor(4, 0.4, 0.3), 1.3); tipB.position.y = -6.2; station.add(tipB); beacons.push(tipB);
-
+  const beamMat = new THREE.MeshBasicMaterial({ color: glowColor(0.8, 4, 1.0), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 120, 12, 1, true), beamMat); beam.position.set(0, SR + 60, 0); dish.add(beam);
+  /* point the dish up and toward the viewer, off to one side */
+  dish.quaternion.setFromUnitVectors(V(0, 1, 0), V(0.15, 0.45, 0.88).normalize());
+  let laserT = rand(10, 18);
+  /* a few red warning lights on towers */
+  const beacons = [];
+  for (let k = 0; k < 10; k++) {
+    const b = glowSprite(glowColor(4, 0.4, 0.3), 0.6);
+    const d = V(rand(-1, 0.3), rand(-0.7, 0.7), rand(0.3, 1)).normalize().multiplyScalar(SR * 1.02);
+    b.position.copy(d); spin.add(b); beacons.push(b);
+  }
   /* bellhive99 hologram, projected from the station toward the fight */
   const holoTex = canvasTex(1024, 256, (g, w, h) => {
     g.font = '900 150px "Arial Black", "Segoe UI Black", Arial, sans-serif';
@@ -481,7 +528,15 @@
     const t = clock.elapsedTime;
     fleetClock += dt;
 
-    spin.rotation.y += dt * 0.04;
+    spin.rotation.y = Math.sin(t * 0.025) * 0.18;
+    /* now and then the superlaser charges (tributaries light up) and fires a beam off into space */
+    laserT -= dt;
+    const charge = laserT < 3 ? Math.min(1, (3 - laserT) / 3) : 0, firing = laserT < 0 && laserT > -1.2;
+    tribs.forEach((e, i) => (e.material.opacity = 0.15 + 0.85 * charge * (0.7 + 0.3 * Math.sin(t * 20 + i))));
+    focusGlow.material.opacity = 0.25 + charge * 0.6 + (firing ? 0.5 : 0);
+    focusGlow.scale.setScalar(2.2 + charge * 2 + (firing ? 3 : 0));
+    beamMat.opacity = firing ? Math.sin(((-laserT) / 1.2) * Math.PI) : 0;
+    if (laserT < -1.2) laserT = rand(16, 26);
     planetBall.rotation.y += dt * 0.01;
     beacons.forEach((b, i) => (b.material.opacity = (Math.sin(t * 3 + i * 0.8) > 0.6) ? 1 : 0.15));
     holoMat.opacity = 0.78 + Math.sin(t * 7) * 0.06 + (Math.random() < 0.03 ? -0.4 : 0);

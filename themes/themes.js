@@ -19,7 +19,7 @@
 (function () {
   const list = [
     { id: 'beehive', name: 'Classic Beehive', blurb: 'Straw skep on a stump, bees foraging at the flowers. Click the hive for a swarm.' },
-    { id: 'space', name: 'Star Wars', blurb: 'Starfighter dogfight around a battle station and a ringed planet. Click for the jump to lightspeed.' },
+    { id: 'space', name: 'Star Wars', blurb: 'Starfighter dogfight near a moon-sized battle station and a ringed planet, two droids looking on. Click for the jump to lightspeed.' },
     { id: 'shire', name: 'Lord of the Rings', blurb: 'Hill village with round doors at sunset, chimney smoke and fireflies. Click for fireworks.' },
     { id: 'goo', name: 'John Dies at the End', blurb: 'A living black goo in a soy sauce can, a meat monster and a dog under a flickering bulb. Click to poke it.' },
     { id: 'blackhole', name: 'Interstellar', blurb: 'A black hole bending its glowing disk around itself, a ring ship drifting past. Click for time dilation.' },
