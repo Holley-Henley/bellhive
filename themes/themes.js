@@ -257,6 +257,11 @@
         el('div', { class: 'bh-field' }, el('span', null, 'Holidays'),
           el('small', { class: 'th-help' }, 'On these dates the theme is set automatically, whatever the schedule says.'), holBox),
         saveBtn,
+        known(mine) ? el('div', { class: 'bh-alert', style: 'margin-top:12px' },
+          'On your screen your own pick (' + byId[mine].name + ') overrides this schedule, so you won\'t see it change. ',
+          el('button', { class: 'bh-btn', type: 'button', onclick: async () => {
+            try { await saveMine(null); mine = null; toast('Following the site theme', 'ok'); render(); } catch (e) { fail(e); }
+          } }, 'Follow the Site')) : null,
         el('h3', { class: 'th-h3' }, 'Just for Me'),
         el('p', { class: 'bh-note' }, 'Pick your own theme. Only you see it; everyone else follows the site.'),
         el('label', { class: 'bh-field' }, el('span', null, 'My theme'), mineSel),
