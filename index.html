@@ -143,11 +143,20 @@
       const ids = BHThemes.list.map((t) => t.id);
       const cur = shownTheme || themeFor();
       const next = ids[(ids.indexOf(cur) + 1) % ids.length];
-      await BHThemes.saveMine(next);
-      themeData.mine = next; themeTimer();
+      /* site on a timer: the star only skips ahead - the pick lapses at the next change (or the one after, if that is under 20 s away) */
+      let until = null;
+      let left = BHThemes.nextChange(themeData.cfg, null);
+      if (left) {
+        const slot = Math.max(1, themeData.cfg.cycle_minutes | 0) * 60000;
+        if (left < 20000) left += slot;
+        until = new Date(Date.now() + left).toISOString();
+      }
+      await BHThemes.saveMine(next, until);
+      themeData.mine = until ? { theme: next, until } : next; themeTimer();
       shownTheme = '';
       document.querySelector('.bh-frames iframe[name=main]').src = 'INDEXB.HTM';
-      BH.ui.toast('Your theme: ' + BHThemes.byId[next].name + ' · My Account to go back to the site\'s', 'ok');
+      BH.ui.toast(until ? 'Showing ' + BHThemes.byId[next].name + ' until the next timed change'
+        : 'Your theme: ' + BHThemes.byId[next].name + ' · My Account to go back to the site\'s', 'ok');
     } catch (err) { BH.ui.toast(err.message, 'error'); }
     switching = false;
   }

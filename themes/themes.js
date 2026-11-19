@@ -3,7 +3,7 @@
  * The 3D scene at the top of the home page (INDEXB.HTM) is a theme: themes/<id>.js.
  * Which one shows is worked out here from the site_theme row (supabase/site-theme.sql),
  * the viewer's own pick (member_theme) and today's date, in this order:
- *   1. your own pick (My Account) - you only
+ *   1. your own pick (My Account) - you only; a star pick while on a timer lapses at the next change
  *   2. "switch today's theme" - everyone, today only
  *   3. a holiday pinned to today's date (MM-DD)
  *   4. the schedule: static | daily | weekly | monthly | random (each visit) | timed, over the rotation list
@@ -75,10 +75,19 @@
   const isoDay = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   const dayNum = (d) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
 
+  /* mine is a theme id (kept until changed) or { theme, until } (the star on a timer: lapses at until) */
+  const tempMine = (mine) => !!(mine && typeof mine === 'object' && mine.until);
+  function mineNow(mine, now) {
+    if (!mine) return null;
+    if (typeof mine === 'string') return mine;
+    if (mine.until && new Date(mine.until).getTime() <= (now || new Date()).getTime()) return null;
+    return mine.theme || null;
+  }
   function resolve(cfg, mine, now) {
     cfg = Object.assign({}, DEFAULT, cfg || {});
     now = now || new Date();
-    if (known(mine)) return { id: mine, why: 'your own pick' };
+    const pick = mineNow(mine, now);
+    if (known(pick)) return { id: pick, why: tempMine(mine) ? 'your pick until the next change' : 'your own pick' };
     if (known(cfg.today_theme) && cfg.today_date === isoDay(now)) return { id: cfg.today_theme, why: 'switched for today' };
     const md = pad(now.getMonth() + 1) + '-' + pad(now.getDate());
     const hol = (cfg.holidays || []).find((h) => h && h.md === md && known(h.theme));
@@ -101,6 +110,7 @@
   function nextChange(cfg, mine, now) {
     cfg = Object.assign({}, DEFAULT, cfg || {});
     now = now || new Date();
+    if (tempMine(mine) && known(mineNow(mine, now))) return Math.max(0, new Date(mine.until).getTime() - now.getTime());
     if (cfg.mode !== 'timed' || !/^changes every/.test(resolve(cfg, mine, now).why)) return 0;
     const ms = Math.min(1440, Math.max(1, cfg.cycle_minutes | 0 || 15)) * 60000;
     return ms - (now.getTime() % ms);
@@ -111,10 +121,10 @@
     if (!window.BH || !BH.sb || !BH.user) return out;
     const [s, m] = await Promise.all([
       BH.sb.from('site_theme').select('*').eq('id', 1).maybeSingle(),
-      BH.sb.from('member_theme').select('theme').eq('user_id', BH.user.id).maybeSingle(),
+      BH.sb.from('member_theme').select('theme, until').eq('user_id', BH.user.id).maybeSingle(),
     ]);
     if (s.data) out.cfg = Object.assign(out.cfg, s.data);
-    if (m.data) out.mine = m.data.theme;
+    if (m.data) out.mine = m.data.until ? { theme: m.data.theme, until: m.data.until } : m.data.theme;
     return out;
   }
   async function saveSite(patch) {
@@ -123,9 +133,9 @@
     changed();
     return r.data;
   }
-  async function saveMine(theme) {
+  async function saveMine(theme, until) {
     const r = theme
-      ? await BH.sb.from('member_theme').upsert({ user_id: BH.user.id, theme, updated_at: new Date().toISOString() })
+      ? await BH.sb.from('member_theme').upsert({ user_id: BH.user.id, theme, until: until || null, updated_at: new Date().toISOString() })
       : await BH.sb.from('member_theme').delete().eq('user_id', BH.user.id);
     if (r.error) throw new Error(r.error.message);
     changed();
@@ -269,7 +279,7 @@
         err);
     }
 
-    load().then((r) => { cfg = r.cfg; mine = r.mine; render(); })
+    load().then((r) => { cfg = r.cfg; mine = typeof r.mine === 'string' ? r.mine : null; render(); })   /* a temporary star pick counts as following the site here */
       .catch((e) => wrap.replaceChildren(el('h2', null, 'Home Page Theme'), el('div', { class: 'bh-alert' }, 'Could not load themes: ' + e.message)));
     return wrap;
   }
@@ -299,5 +309,5 @@
     document.head.appendChild(css);
   }
 
-  window.BHThemes = { list, byId, MODES, resolve, nextChange, load, saveSite, saveMine, card, isoDay };
+  window.BHThemes = { list, byId, MODES, resolve, nextChange, mineNow, load, saveSite, saveMine, card, isoDay };
 })();

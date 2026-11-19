@@ -12,6 +12,7 @@
 --                 today_theme   "switch today's theme": wins for today_date only
 --                 holidays      [{ "md": "MM-DD", "theme": "<id>", "name": "..." }] - pinned dates
 -- member_theme  a person's own pick; overrides the site for them only. No row = follow the site.
+--               until set = temporary (the menu star while on a timer): ignored once it has passed.
 --
 -- Which theme shows is worked out in the browser (themes/themes.js) from these values and the date.
 
@@ -50,6 +51,8 @@ create table if not exists public.member_theme (
   theme       text not null check (char_length(theme) <= 40),
   updated_at  timestamptz not null default now()
 );
+-- until: a temporary pick (the star on the timer) that lapses at the next timed change (added 261118.03)
+alter table public.member_theme add column if not exists until timestamptz;
 alter table public.member_theme enable row level security;
 revoke all on public.member_theme from anon, authenticated;
 grant select, insert, update, delete on public.member_theme to authenticated;
